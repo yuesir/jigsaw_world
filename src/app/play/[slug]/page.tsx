@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import Image from 'next/image'
 import { Play, Pause, RotateCcw, Check, Clock, Grid3X3, Puzzle, Home, Maximize2, Volume2, VolumeX, Settings, ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -30,7 +30,7 @@ interface PuzzleGame {
   cols: number
 }
 
-export default function PlayPuzzlePage() {
+function PlayPuzzleContent() {
   const params = useParams()
   const router = useRouter()
   const slug = params?.slug as string
@@ -184,7 +184,7 @@ export default function PlayPuzzlePage() {
 
   if (!puzzle) {
     return (
-      <div className="min-h-screen bg-muted flex items-center justify-center">
+      <div className="min-h-screen bg-muted dark:bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4" />
           <p className="text-muted-foreground">Loading puzzle...</p>
@@ -194,19 +194,19 @@ export default function PlayPuzzlePage() {
   }
 
   return (
-    <div className="min-h-screen bg-muted flex flex-col">
+    <div className="min-h-screen bg-muted dark:bg-background flex flex-col">
       {/* Game Header */}
-      <header className="bg-card border-b border-border px-4 sm:px-6 py-4">
+      <header className="bg-card dark:bg-card/80 border-b border-border dark:border-white/10 px-4 sm:px-6 py-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-4">
             <Link href="/">
-              <Button variant="ghost" size="icon" className="hidden sm:flex">
+              <Button variant="ghost" size="icon" className="hidden sm:flex dark:hover:bg-white/10">
                 <ChevronLeft className="h-5 w-5" />
               </Button>
             </Link>
             <div>
               <h1 className="text-lg font-bold text-foreground">{puzzle.title}</h1>
-              <div className="flex items-center space-x-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <span className="flex items-center">
                   <Grid3X3 className="h-4 w-4 mr-1" />
                   {puzzle.piece_count} pieces
@@ -217,17 +217,17 @@ export default function PlayPuzzlePage() {
             </div>
           </div>
           
-          <div className="flex items-center justify-between sm:justify-end space-x-4">
+          <div className="flex items-center justify-between sm:justify-end gap-4">
             {/* Timer */}
-            <div className="flex items-center space-x-2 bg-muted px-4 py-2 rounded-xl">
+            <div className="flex items-center gap-2 bg-secondary dark:bg-secondary/50 px-4 py-2 rounded-xl">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-xl font-mono font-bold text-foreground">{formatTime(timer)}</span>
             </div>
             
             {/* Progress */}
-            <div className="hidden sm:flex items-center space-x-3">
+            <div className="hidden sm:flex items-center gap-3">
               <span className="text-sm text-muted-foreground">Progress</span>
-              <div className="w-32 bg-muted rounded-full h-2.5 overflow-hidden">
+              <div className="w-32 bg-secondary dark:bg-secondary/50 rounded-full h-2.5 overflow-hidden">
                 <div 
                   className="bg-primary h-full rounded-full transition-all duration-500 progress-bar"
                   style={{ width: `${progress}%` }}
@@ -237,12 +237,12 @@ export default function PlayPuzzlePage() {
             </div>
 
             {/* Control buttons */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsMuted(!isMuted)}
-                className="hidden sm:flex"
+                className="hidden sm:flex dark:hover:bg-white/10"
               >
                 {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
               </Button>
@@ -251,7 +251,7 @@ export default function PlayPuzzlePage() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowPreview(!showPreview)}
-                className={cn(showPreview && "bg-primary/10 text-primary")}
+                className={cn(showPreview && "bg-primary/10 text-primary dark:bg-primary/20", "dark:hover:bg-white/10")}
               >
                 <Maximize2 className="h-4 w-4" />
               </Button>
@@ -262,13 +262,13 @@ export default function PlayPuzzlePage() {
                   Start
                 </Button>
               ) : (
-                <Button onClick={pauseGame} variant="outline" size="sm">
+                <Button onClick={pauseGame} variant="outline" size="sm" className="dark:bg-transparent">
                   <Pause className="h-4 w-4 mr-1" />
                   Pause
                 </Button>
               )}
               
-              <Button onClick={resetGame} variant="outline" size="sm">
+              <Button onClick={resetGame} variant="outline" size="sm" className="dark:bg-transparent">
                 <RotateCcw className="h-4 w-4" />
               </Button>
             </div>
@@ -281,7 +281,7 @@ export default function PlayPuzzlePage() {
             <span className="text-muted-foreground">Progress</span>
             <span className="font-semibold text-foreground">{progress}%</span>
           </div>
-          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-secondary dark:bg-secondary/50 rounded-full h-2 overflow-hidden">
             <div 
               className="bg-primary h-full rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
@@ -297,14 +297,14 @@ export default function PlayPuzzlePage() {
             {/* Main Game Board */}
             <div 
               ref={gameAreaRef}
-              className="relative flex-1 bg-card rounded-2xl shadow-lg border-2 border-dashed border-border overflow-hidden"
+              className="relative flex-1 bg-card dark:bg-card/80 rounded-2xl shadow-lg border-2 border-dashed border-border dark:border-white/10 overflow-hidden"
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
               {/* Preview Image */}
               {showPreview && (
-                <div className="absolute inset-0 z-10 bg-black/50 backdrop-blur-sm flex items-center justify-center p-8">
+                <div className="absolute inset-0 z-10 bg-black/60 backdrop-blur-sm flex items-center justify-center p-8">
                   <div className="relative max-w-lg w-full">
                     <Image
                       src={puzzle.image_url}
@@ -328,7 +328,7 @@ export default function PlayPuzzlePage() {
               {/* Puzzle Board Area */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div 
-                  className="grid gap-1 p-4 bg-muted/30 rounded-xl"
+                  className="grid gap-1 p-4 bg-secondary/50 dark:bg-secondary/20 rounded-xl"
                   style={{ 
                     gridTemplateColumns: `repeat(${puzzle.cols}, 80px)`,
                     gridTemplateRows: `repeat(${puzzle.rows}, 80px)`
@@ -337,7 +337,7 @@ export default function PlayPuzzlePage() {
                   {Array.from({ length: puzzle.piece_count }, (_, i) => (
                     <div 
                       key={i}
-                      className="w-20 h-20 border-2 border-dashed border-border/50 bg-muted/50 rounded-lg"
+                      className="w-20 h-20 border-2 border-dashed border-border dark:border-white/10 bg-secondary/30 dark:bg-secondary/10 rounded-lg"
                     />
                   ))}
                 </div>
@@ -350,8 +350,8 @@ export default function PlayPuzzlePage() {
                   className={cn(
                     "absolute w-20 h-20 rounded-lg cursor-grab select-none puzzle-piece shadow-md",
                     piece.isPlaced 
-                      ? "bg-primary/20 border-2 border-primary/50" 
-                      : "bg-gradient-to-br from-primary to-primary/80 border-2 border-primary/80",
+                      ? "bg-primary/20 border-2 border-primary/50 dark:bg-primary/30 dark:border-primary/60" 
+                      : "bg-gradient-to-br from-primary to-primary/80 dark:from-primary dark:to-primary/90 border-2 border-primary/80",
                     selectedPiece === piece.id && !piece.isPlaced && "ring-2 ring-warning scale-105",
                     !piece.isPlaced && "hover:shadow-xl hover:scale-105"
                   )}
@@ -375,9 +375,9 @@ export default function PlayPuzzlePage() {
 
               {/* Start Overlay */}
               {!isPlaying && !isCompleted && progress === 0 && (
-                <div className="absolute inset-0 bg-card/80 backdrop-blur-sm flex items-center justify-center z-20">
+                <div className="absolute inset-0 bg-card/80 dark:bg-card/90 backdrop-blur-sm flex items-center justify-center z-20">
                   <div className="text-center">
-                    <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-primary-subtle dark:bg-primary/20 flex items-center justify-center">
                       <Puzzle className="w-10 h-10 text-primary" />
                     </div>
                     <h3 className="text-2xl font-bold text-foreground mb-2">Ready to Start?</h3>
@@ -395,9 +395,9 @@ export default function PlayPuzzlePage() {
               {/* Completion Modal */}
               {isCompleted && (
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-                  <Card className="max-w-md w-full mx-4 border-0 shadow-2xl animate-fade-in">
+                  <Card className="max-w-md w-full mx-4 border-0 shadow-2xl animate-fade-in dark:bg-card dark:border dark:border-white/10">
                     <CardHeader className="text-center pb-2">
-                      <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-success/10 flex items-center justify-center animate-pulse-ring">
+                      <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-success-subtle dark:bg-success/20 flex items-center justify-center animate-pulse-ring">
                         <span className="text-5xl">🎉</span>
                       </div>
                       <CardTitle className="text-2xl text-success">Congratulations!</CardTitle>
@@ -410,7 +410,7 @@ export default function PlayPuzzlePage() {
                         <p className="text-4xl font-bold text-primary">{formatTime(timer)}</p>
                       </div>
                       
-                      <div className="grid grid-cols-3 gap-4 py-4 border-y border-border">
+                      <div className="grid grid-cols-3 gap-4 py-4 border-y border-border dark:border-white/10">
                         <div>
                           <p className="text-2xl font-bold text-foreground">{puzzle.piece_count}</p>
                           <p className="text-xs text-muted-foreground">Pieces</p>
@@ -426,7 +426,7 @@ export default function PlayPuzzlePage() {
                       </div>
                       
                       <div className="flex gap-3">
-                        <Button onClick={resetGame} variant="outline" className="flex-1">
+                        <Button onClick={resetGame} variant="outline" className="flex-1 dark:bg-transparent">
                           <RotateCcw className="w-4 h-4 mr-2" />
                           Play Again
                         </Button>
@@ -444,7 +444,7 @@ export default function PlayPuzzlePage() {
             {/* Sidebar - Only visible on larger screens */}
             <div className="hidden xl:block w-64 space-y-4">
               {/* Instructions */}
-              <Card className="border-0 shadow-lg">
+              <Card className="border-0 shadow-lg dark:bg-card dark:border dark:border-white/10">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center">
                     <Settings className="w-4 h-4 mr-2" />
@@ -452,20 +452,20 @@ export default function PlayPuzzlePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-primary-subtle dark:bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-xs font-bold text-primary">1</span>
                     </div>
                     <p className="text-muted-foreground">Drag pieces from the sides to the board</p>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-primary-subtle dark:bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-xs font-bold text-primary">2</span>
                     </div>
                     <p className="text-muted-foreground">Pieces snap into place when near correct position</p>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-primary-subtle dark:bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-xs font-bold text-primary">3</span>
                     </div>
                     <p className="text-muted-foreground">Complete all pieces to finish the puzzle!</p>
@@ -474,28 +474,28 @@ export default function PlayPuzzlePage() {
               </Card>
 
               {/* Quick Stats */}
-              <Card className="border-0 shadow-lg">
+              <Card className="border-0 shadow-lg dark:bg-card dark:border dark:border-white/10">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm">Session Stats</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Time</span>
-                    <span className="font-mono font-semibold">{formatTime(timer)}</span>
+                    <span className="font-mono font-semibold text-foreground">{formatTime(timer)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Progress</span>
-                    <span className="font-semibold">{progress}%</span>
+                    <span className="font-semibold text-foreground">{progress}%</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Placed</span>
-                    <span className="font-semibold">{pieces.filter(p => p.isPlaced).length}/{pieces.length}</span>
+                    <span className="font-semibold text-foreground">{pieces.filter(p => p.isPlaced).length}/{pieces.length}</span>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Preview thumbnail */}
-              <Card className="border-0 shadow-lg overflow-hidden">
+              <Card className="border-0 shadow-lg overflow-hidden dark:bg-card dark:border dark:border-white/10">
                 <div className="relative aspect-[4/3]">
                   <Image
                     src={puzzle.image_url}
@@ -516,5 +516,17 @@ export default function PlayPuzzlePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PlayPuzzlePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-muted dark:bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
+      </div>
+    }>
+      <PlayPuzzleContent />
+    </Suspense>
   )
 }

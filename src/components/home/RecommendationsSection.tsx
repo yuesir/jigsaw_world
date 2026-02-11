@@ -58,12 +58,12 @@ export function RecommendationsSection() {
   }
 
   return (
-    <section className="py-20 bg-muted/30">
+    <section className="py-20 section-alt">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-12">
           <div className="mb-6 md:mb-0">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary mb-4">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-subtle dark:bg-primary/20 text-primary mb-4 border border-primary/20">
               <Star className="w-4 h-4 mr-1" />
               Featured
             </span>
@@ -75,7 +75,7 @@ export function RecommendationsSection() {
             </p>
           </div>
           <Link href="/explore/all">
-            <Button variant="outline" className="group">
+            <Button variant="outline" className="group bg-card dark:bg-transparent">
               View All Puzzles
               <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
             </Button>
@@ -89,6 +89,7 @@ export function RecommendationsSection() {
               key={puzzle.id} 
               className={cn(
                 "group overflow-hidden card-hover border-0 shadow-lg",
+                "dark:bg-card dark:border dark:border-white/10",
                 "animate-fade-in"
               )}
               style={{ animationDelay: `${index * 100}ms` }}
@@ -101,13 +102,13 @@ export function RecommendationsSection() {
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-110"
                   />
-                  {/* Gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  {/* Gradient overlay on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   
                   {/* Difficulty badge */}
                   <div className="absolute top-4 right-4">
                     <span className={cn(
-                      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
+                      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-sm",
                       getDifficultyStyle(puzzle.difficulty)
                     )}>
                       {puzzle.difficulty}
@@ -131,15 +132,15 @@ export function RecommendationsSection() {
                   {puzzle.title}
                 </CardTitle>
                 
-                {/* Stats */}
+                {/* Stats row */}
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                    <span className="flex items-center">
-                      <Puzzle className="w-4 h-4 mr-1" />
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Puzzle className="w-4 h-4" />
                       {puzzle.piece_count}
                     </span>
-                    <span className="flex items-center">
-                      <Star className="w-4 h-4 mr-1 text-warning fill-warning" />
+                    <span className="flex items-center gap-1">
+                      <Star className="w-4 h-4 text-warning fill-warning" />
                       {puzzle.rating}
                     </span>
                   </div>
@@ -148,8 +149,8 @@ export function RecommendationsSection() {
                   </span>
                 </div>
                 
-                {/* Action */}
-                <div className="flex items-center justify-between pt-4 border-t border-border">
+                {/* Action row */}
+                <div className="flex items-center justify-between pt-4 border-t border-border dark:border-white/10">
                   <span className="text-sm text-muted-foreground">
                     <Clock className="w-4 h-4 inline mr-1" />
                     ~{Math.round(puzzle.piece_count / 10)} min
@@ -168,7 +169,7 @@ export function RecommendationsSection() {
 
         {/* Bottom CTA */}
         <div className="mt-16 text-center">
-          <div className="inline-flex flex-col sm:flex-row items-center gap-4 p-6 rounded-2xl bg-card border shadow-lg">
+          <div className="inline-flex flex-col sm:flex-row items-center gap-4 p-6 rounded-2xl bg-card dark:bg-card/80 border border-border dark:border-white/10 shadow-lg">
             <div className="text-center sm:text-left">
               <p className="font-semibold text-foreground">Want more puzzles?</p>
               <p className="text-sm text-muted-foreground">Browse our collection of 1000+ puzzles</p>

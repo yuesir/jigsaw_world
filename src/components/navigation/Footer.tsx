@@ -32,7 +32,7 @@ const socialLinks = [
 
 export function Footer() {
   return (
-    <footer className="bg-card border-t border-border">
+    <footer className="bg-card dark:bg-card/50 border-t border-border dark:border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer */}
         <div className="py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
@@ -55,7 +55,7 @@ export function Footer() {
                 <a
                   key={social.label}
                   href={social.href}
-                  className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
+                  className="w-10 h-10 rounded-lg bg-secondary dark:bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 dark:hover:bg-secondary transition-colors"
                   aria-label={social.label}
                 >
                   <social.icon className="h-5 w-5" />
@@ -117,7 +117,7 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="py-6 border-t border-border">
+        <div className="py-6 border-t border-border dark:border-white/10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">
               &copy; {new Date().getFullYear()} JigsawWorld. All rights reserved.

@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-interface Puzzle {
+interface PuzzleItem {
   id: string
   title: string
   image_url: string
@@ -29,13 +29,13 @@ const recentSearches = ['beach sunset', 'winter mountain', 'city night']
 function SearchContent() {
   const searchParams = useSearchParams()
   const query = searchParams.get('q') || ''
-  const [searchResults, setSearchResults] = useState<Puzzle[]>([])
+  const [searchResults, setSearchResults] = useState<PuzzleItem[]>([])
   const [loading, setLoading] = useState(true)
   const [searchInput, setSearchInput] = useState(query)
   const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
-    const mockResults: Puzzle[] = [
+    const mockResults: PuzzleItem[] = [
       {
         id: '1',
         title: 'Mountain Landscape',
@@ -143,11 +143,11 @@ function SearchContent() {
   return (
     <div className="min-h-screen bg-background">
       {/* Search Header */}
-      <section className="relative bg-muted/30 border-b border-border overflow-hidden">
+      <section className="relative bg-muted/30 dark:bg-secondary/20 border-b border-border overflow-hidden">
         {/* Decorative background */}
         <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/20 dark:bg-primary/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-accent/20 dark:bg-accent/30 rounded-full blur-3xl" />
         </div>
         
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -177,7 +177,7 @@ function SearchContent() {
                 placeholder="Search for puzzles..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-12 pr-24 py-4 text-lg border-2 border-border bg-card rounded-xl focus:border-primary focus:ring-primary"
+                className="w-full pl-12 pr-24 py-4 text-lg border-2 border-border dark:border-white/10 bg-card dark:bg-card/80 rounded-xl focus:border-primary focus:ring-primary"
               />
               {searchInput && (
                 <button
@@ -207,7 +207,7 @@ function SearchContent() {
                     <Link
                       key={term}
                       href={`/search?q=${encodeURIComponent(term)}`}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-secondary dark:bg-secondary/50 text-secondary-foreground hover:bg-secondary/80 transition-colors"
                     >
                       {term}
                     </Link>
@@ -221,7 +221,7 @@ function SearchContent() {
                   <Link
                     key={term}
                     href={`/search?q=${term}`}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary-subtle dark:bg-primary/20 text-primary hover:bg-primary/30 transition-colors border border-primary/20"
                   >
                     <TrendingUp className="w-3 h-3 mr-1" />
                     {term}
@@ -239,17 +239,17 @@ function SearchContent() {
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[...Array(6)].map((_, i) => (
-                <Card key={i} className="animate-pulse border-0 shadow-lg">
+                <Card key={i} className="animate-pulse border-0 shadow-lg dark:bg-card dark:border dark:border-white/10">
                   <CardHeader className="p-0">
-                    <div className="bg-muted aspect-[4/3] rounded-t-xl" />
+                    <div className="bg-secondary dark:bg-secondary/30 aspect-[4/3] rounded-t-xl" />
                   </CardHeader>
                   <CardContent className="p-6">
-                    <div className="h-5 bg-muted rounded w-3/4 mb-3" />
-                    <div className="h-3 bg-muted rounded w-full mb-2" />
-                    <div className="h-3 bg-muted rounded w-5/6 mb-4" />
+                    <div className="h-5 bg-secondary dark:bg-secondary/30 rounded w-3/4 mb-3" />
+                    <div className="h-3 bg-secondary dark:bg-secondary/30 rounded w-full mb-2" />
+                    <div className="h-3 bg-secondary dark:bg-secondary/30 rounded w-5/6 mb-4" />
                     <div className="flex justify-between">
-                      <div className="h-3 bg-muted rounded w-16" />
-                      <div className="h-3 bg-muted rounded w-20" />
+                      <div className="h-3 bg-secondary dark:bg-secondary/30 rounded w-16" />
+                      <div className="h-3 bg-secondary dark:bg-secondary/30 rounded w-20" />
                     </div>
                   </CardContent>
                 </Card>
@@ -268,6 +268,7 @@ function SearchContent() {
                   variant="outline" 
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
+                  className="dark:bg-transparent"
                 >
                   <Filter className="w-4 h-4 mr-2" />
                   Filters
@@ -281,6 +282,7 @@ function SearchContent() {
                     key={puzzle.id} 
                     className={cn(
                       "group overflow-hidden card-hover border-0 shadow-lg",
+                      "dark:bg-card dark:border dark:border-white/10",
                       "animate-fade-in"
                     )}
                     style={{ animationDelay: `${index * 100}ms` }}
@@ -293,12 +295,12 @@ function SearchContent() {
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-110"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         
                         {/* Difficulty badge */}
                         <div className="absolute top-4 right-4">
                           <span className={cn(
-                            "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
+                            "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-sm",
                             getDifficultyStyle(puzzle.difficulty)
                           )}>
                             {puzzle.difficulty}
@@ -307,7 +309,7 @@ function SearchContent() {
                         
                         {/* Category badge */}
                         <div className="absolute top-4 left-4">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-white/90 text-foreground backdrop-blur-sm">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-white/95 dark:bg-white/90 text-foreground backdrop-blur-sm">
                             {puzzle.category}
                           </span>
                         </div>
@@ -334,7 +336,7 @@ function SearchContent() {
                       
                       {/* Stats */}
                       <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center">
                             <Puzzle className="w-4 h-4 mr-1" />
                             {puzzle.piece_count}
@@ -350,7 +352,7 @@ function SearchContent() {
                       </div>
                       
                       {/* Action */}
-                      <div className="flex items-center justify-between pt-4 border-t border-border">
+                      <div className="flex items-center justify-between pt-4 border-t border-border dark:border-white/10">
                         <span className="text-sm text-muted-foreground">
                           <Clock className="w-4 h-4 inline mr-1" />
                           ~{Math.round(puzzle.piece_count / 10)} min
@@ -370,7 +372,7 @@ function SearchContent() {
           ) : query ? (
             <div className="text-center py-16">
               <div className="max-w-md mx-auto">
-                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted dark:bg-secondary/30 flex items-center justify-center">
                   <Frown className="h-10 w-10 text-muted-foreground" />
                 </div>
                 <h3 className="text-2xl font-bold text-foreground mb-2">
@@ -386,7 +388,7 @@ function SearchContent() {
                       <Link
                         key={suggestion}
                         href={`/search?q=${suggestion}`}
-                        className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                        className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-secondary dark:bg-secondary/50 text-secondary-foreground hover:bg-secondary/80 transition-colors"
                       >
                         {suggestion}
                       </Link>
@@ -398,7 +400,7 @@ function SearchContent() {
           ) : (
             <div className="text-center py-16">
               <div className="max-w-md mx-auto">
-                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary-subtle dark:bg-primary/20 flex items-center justify-center">
                   <Sparkles className="h-10 w-10 text-primary" />
                 </div>
                 <h3 className="text-2xl font-bold text-foreground mb-2">

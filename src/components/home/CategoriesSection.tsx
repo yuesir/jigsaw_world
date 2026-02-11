@@ -15,6 +15,7 @@ interface Category {
   image_url: string
   puzzle_count: number
   color: string
+  darkColor: string
 }
 
 export function CategoriesSection() {
@@ -27,7 +28,8 @@ export function CategoriesSection() {
       icon: Mountain,
       image_url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop',
       puzzle_count: 25,
-      color: 'from-green-500 to-emerald-600'
+      color: 'from-green-500 to-emerald-600',
+      darkColor: 'from-green-400 to-emerald-500'
     },
     {
       id: '2',
@@ -37,7 +39,8 @@ export function CategoriesSection() {
       icon: Waves,
       image_url: 'https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=400&h=300&fit=crop',
       puzzle_count: 18,
-      color: 'from-blue-500 to-cyan-600'
+      color: 'from-blue-500 to-cyan-600',
+      darkColor: 'from-blue-400 to-cyan-500'
     },
     {
       id: '3',
@@ -47,7 +50,8 @@ export function CategoriesSection() {
       icon: Building,
       image_url: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=300&fit=crop',
       puzzle_count: 32,
-      color: 'from-purple-500 to-indigo-600'
+      color: 'from-purple-500 to-indigo-600',
+      darkColor: 'from-purple-400 to-indigo-500'
     },
     {
       id: '4',
@@ -57,7 +61,8 @@ export function CategoriesSection() {
       icon: TreePine,
       image_url: 'https://images.unsplash.com/photo-1511497584788-876760111969?w=400&h=300&fit=crop',
       puzzle_count: 21,
-      color: 'from-emerald-500 to-teal-600'
+      color: 'from-emerald-500 to-teal-600',
+      darkColor: 'from-emerald-400 to-teal-500'
     },
     {
       id: '5',
@@ -67,7 +72,8 @@ export function CategoriesSection() {
       icon: Palette,
       image_url: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop',
       puzzle_count: 15,
-      color: 'from-pink-500 to-rose-600'
+      color: 'from-pink-500 to-rose-600',
+      darkColor: 'from-pink-400 to-rose-500'
     },
     {
       id: '6',
@@ -77,7 +83,8 @@ export function CategoriesSection() {
       icon: Camera,
       image_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop',
       puzzle_count: 28,
-      color: 'from-amber-500 to-orange-600'
+      color: 'from-amber-500 to-orange-600',
+      darkColor: 'from-amber-400 to-orange-500'
     }
   ]
 
@@ -86,7 +93,7 @@ export function CategoriesSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-accent/10 text-accent mb-4">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-accent-subtle dark:bg-accent/20 text-accent mb-4 border border-accent/20">
             <Grid3X3 className="w-4 h-4 mr-1" />
             Browse
           </span>
@@ -107,6 +114,7 @@ export function CategoriesSection() {
                 <Card 
                   className={cn(
                     "group overflow-hidden card-hover border-0 shadow-lg cursor-pointer",
+                    "dark:bg-card dark:border dark:border-white/10",
                     "animate-fade-in"
                   )}
                   style={{ animationDelay: `${index * 100}ms` }}
@@ -121,27 +129,28 @@ export function CategoriesSection() {
                       />
                       {/* Gradient overlay */}
                       <div className={cn(
-                        "absolute inset-0 bg-gradient-to-t opacity-60 transition-opacity duration-300 group-hover:opacity-70",
-                        category.color
+                        "absolute inset-0 bg-gradient-to-t opacity-70 transition-opacity duration-300 group-hover:opacity-80",
+                        category.color,
+                        "dark:opacity-75 dark:group-hover:opacity-85"
                       )} />
                       
                       {/* Content overlay */}
                       <div className="absolute inset-0 p-6 flex flex-col justify-end">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-12 h-12 rounded-xl bg-white/20 dark:bg-white/30 backdrop-blur-sm flex items-center justify-center">
                             <IconComponent className="h-6 w-6 text-white" />
                           </div>
                         </div>
-                        <h3 className="text-2xl font-bold text-white mb-1">
+                        <h3 className="text-2xl font-bold text-white mb-1 drop-shadow-lg">
                           {category.name}
                         </h3>
-                        <p className="text-white/80 text-sm">
+                        <p className="text-white/90 text-sm drop-shadow-md">
                           {category.puzzle_count} puzzles
                         </p>
                       </div>
                       
                       {/* Hover arrow */}
-                      <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+                      <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 dark:bg-white/30 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
                         <ArrowRight className="h-5 w-5 text-white" />
                       </div>
                     </div>
@@ -166,7 +175,7 @@ export function CategoriesSection() {
         <div className="mt-12 text-center">
           <Link 
             href="/categories"
-            className="inline-flex items-center px-6 py-3 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-medium transition-colors"
+            className="inline-flex items-center px-6 py-3 rounded-xl bg-secondary dark:bg-secondary/80 text-secondary-foreground font-medium hover:bg-secondary/80 dark:hover:bg-secondary transition-colors"
           >
             <Grid3X3 className="w-5 h-5 mr-2" />
             View All Categories

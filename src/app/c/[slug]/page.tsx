@@ -1,10 +1,10 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Puzzle, Clock, Users, Star, ChevronLeft, ChevronRight, Filter, Grid3X3, List } from 'lucide-react'
+import { Puzzle, Users, Star, ChevronLeft, ChevronRight, Filter, Grid3X3, List, Clock } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -30,7 +30,7 @@ interface Category {
   icon: string
 }
 
-export default function CategoryPage() {
+function CategoryContent() {
   const params = useParams()
   const slug = params?.slug as string
   
@@ -44,7 +44,6 @@ export default function CategoryPage() {
   const itemsPerPage = 12
 
   useEffect(() => {
-    // Mock data for now
     const mockCategory: Category = {
       id: '1',
       name: slug.charAt(0).toUpperCase() + slug.slice(1),
@@ -103,27 +102,27 @@ export default function CategoryPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="bg-muted/30 border-b border-border">
+        <div className="bg-muted/30 dark:bg-secondary/20 border-b border-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
             <div className="animate-pulse text-center">
-              <div className="h-8 bg-muted rounded w-48 mx-auto mb-4" />
-              <div className="h-4 bg-muted rounded w-96 mx-auto" />
+              <div className="h-8 bg-secondary dark:bg-secondary/50 rounded w-48 mx-auto mb-4" />
+              <div className="h-4 bg-secondary dark:bg-secondary/50 rounded w-96 mx-auto" />
             </div>
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[...Array(8)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
+              <Card key={i} className="animate-pulse border-0 dark:border dark:border-white/10 dark:bg-card">
                 <CardHeader className="p-0">
-                  <div className="bg-muted aspect-[4/3] rounded-t-xl" />
+                  <div className="bg-secondary dark:bg-secondary/30 aspect-[4/3] rounded-t-xl" />
                 </CardHeader>
                 <CardContent className="p-4">
-                  <div className="h-4 bg-muted rounded w-3/4 mb-2" />
-                  <div className="h-3 bg-muted rounded w-full mb-4" />
+                  <div className="h-4 bg-secondary dark:bg-secondary/30 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-secondary dark:bg-secondary/30 rounded w-full mb-4" />
                   <div className="flex justify-between">
-                    <div className="h-3 bg-muted rounded w-16" />
-                    <div className="h-3 bg-muted rounded w-20" />
+                    <div className="h-3 bg-secondary dark:bg-secondary/30 rounded w-16" />
+                    <div className="h-3 bg-secondary dark:bg-secondary/30 rounded w-20" />
                   </div>
                 </CardContent>
               </Card>
@@ -152,11 +151,11 @@ export default function CategoryPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Category Header */}
-      <section className="relative bg-muted/30 border-b border-border overflow-hidden">
+      <section className="relative bg-muted/30 dark:bg-secondary/20 border-b border-border overflow-hidden">
         {/* Decorative background */}
         <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 dark:bg-primary/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/20 dark:bg-accent/30 rounded-full blur-3xl" />
         </div>
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -177,39 +176,29 @@ export default function CategoryPage() {
               {category.description}
             </p>
             
-            <div className="flex items-center justify-center space-x-8">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 rounded-lg bg-primary/10">
+            <div className="flex items-center justify-center gap-6">
+              <div className="stat-card">
+                <div className="p-2 rounded-lg bg-primary-subtle dark:bg-primary/20 mx-auto mb-2 w-fit">
                   <Puzzle className="h-5 w-5 text-primary" />
                 </div>
-                <div className="text-left">
-                  <p className="text-2xl font-bold text-foreground">{category.puzzle_count}</p>
-                  <p className="text-xs text-muted-foreground">Puzzles</p>
-                </div>
+                <p className="text-2xl font-bold text-foreground">{category.puzzle_count}</p>
+                <p className="text-xs text-muted-foreground">Puzzles</p>
               </div>
               
-              <div className="h-12 w-px bg-border" />
-              
-              <div className="flex items-center space-x-2">
-                <div className="p-2 rounded-lg bg-success/10">
+              <div className="stat-card">
+                <div className="p-2 rounded-lg bg-success-subtle dark:bg-success/20 mx-auto mb-2 w-fit">
                   <Users className="h-5 w-5 text-success" />
                 </div>
-                <div className="text-left">
-                  <p className="text-2xl font-bold text-foreground">12.5K</p>
-                  <p className="text-xs text-muted-foreground">Players</p>
-                </div>
+                <p className="text-2xl font-bold text-foreground">12.5K</p>
+                <p className="text-xs text-muted-foreground">Players</p>
               </div>
               
-              <div className="h-12 w-px bg-border" />
-              
-              <div className="flex items-center space-x-2">
-                <div className="p-2 rounded-lg bg-warning/10">
+              <div className="stat-card">
+                <div className="p-2 rounded-lg bg-warning-subtle dark:bg-warning/20 mx-auto mb-2 w-fit">
                   <Clock className="h-5 w-5 text-warning" />
                 </div>
-                <div className="text-left">
-                  <p className="text-2xl font-bold text-foreground">25min</p>
-                  <p className="text-xs text-muted-foreground">Avg. Time</p>
-                </div>
+                <p className="text-2xl font-bold text-foreground">25min</p>
+                <p className="text-xs text-muted-foreground">Avg. Time</p>
               </div>
             </div>
           </div>
@@ -226,18 +215,18 @@ export default function CategoryPage() {
               <span className="font-semibold text-foreground">{puzzles.length}</span> puzzles
             </p>
             
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm" className="hidden sm:flex">
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" className="hidden sm:flex dark:bg-transparent">
                 <Filter className="w-4 h-4 mr-2" />
                 Filter
               </Button>
               
-              <div className="flex items-center border rounded-lg p-1">
+              <div className="flex items-center border rounded-lg p-1 dark:border-white/10">
                 <button
                   onClick={() => setViewMode('grid')}
                   className={cn(
                     "p-2 rounded-md transition-colors",
-                    viewMode === 'grid' ? "bg-secondary" : "hover:bg-secondary/50"
+                    viewMode === 'grid' ? "bg-secondary dark:bg-secondary/50" : "hover:bg-secondary/50 dark:hover:bg-secondary/30"
                   )}
                 >
                   <Grid3X3 className="w-4 h-4" />
@@ -246,7 +235,7 @@ export default function CategoryPage() {
                   onClick={() => setViewMode('list')}
                   className={cn(
                     "p-2 rounded-md transition-colors",
-                    viewMode === 'list' ? "bg-secondary" : "hover:bg-secondary/50"
+                    viewMode === 'list' ? "bg-secondary dark:bg-secondary/50" : "hover:bg-secondary/50 dark:hover:bg-secondary/30"
                   )}
                 >
                   <List className="w-4 h-4" />
@@ -263,6 +252,7 @@ export default function CategoryPage() {
                   key={puzzle.id} 
                   className={cn(
                     "group overflow-hidden card-hover border-0 shadow-lg",
+                    "dark:bg-card dark:border dark:border-white/10",
                     "animate-fade-in"
                   )}
                   style={{ animationDelay: `${index * 50}ms` }}
@@ -275,11 +265,11 @@ export default function CategoryPage() {
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-110"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       
                       <div className="absolute top-3 right-3">
                         <span className={cn(
-                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
+                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-sm",
                           getDifficultyStyle(puzzle.difficulty)
                         )}>
                           {puzzle.difficulty}
@@ -307,7 +297,7 @@ export default function CategoryPage() {
                     </p>
                     
                     <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center gap-3">
                         <span className="flex items-center text-muted-foreground">
                           <Puzzle className="w-3.5 h-3.5 mr-1" />
                           {puzzle.piece_count}
@@ -334,7 +324,7 @@ export default function CategoryPage() {
               {paginatedPuzzles.map((puzzle) => (
                 <Card 
                   key={puzzle.id} 
-                  className="group overflow-hidden hover:shadow-lg transition-all duration-300"
+                  className="group overflow-hidden hover:shadow-lg transition-all duration-300 dark:bg-card dark:border dark:border-white/10"
                 >
                   <div className="flex flex-col sm:flex-row">
                     <div className="relative w-full sm:w-48 h-48 sm:h-auto flex-shrink-0">
@@ -346,7 +336,7 @@ export default function CategoryPage() {
                       />
                       <div className="absolute top-3 left-3">
                         <span className={cn(
-                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
+                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-sm",
                           getDifficultyStyle(puzzle.difficulty)
                         )}>
                           {puzzle.difficulty}
@@ -381,7 +371,7 @@ export default function CategoryPage() {
                       
                       <div className="flex gap-3 mt-4 sm:mt-0">
                         <Link href={`/p/${puzzle.id}`} className="flex-1 sm:flex-initial">
-                          <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                          <Button variant="outline" size="sm" className="w-full sm:w-auto dark:bg-transparent">
                             View Details
                           </Button>
                         </Link>
@@ -401,19 +391,19 @@ export default function CategoryPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center mt-12">
-              <nav className="flex items-center space-x-2">
+              <nav className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="hidden sm:flex"
+                  className="hidden sm:flex dark:bg-transparent"
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Previous
                 </Button>
                 
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter(page => 
                       page === 1 || 
@@ -429,7 +419,7 @@ export default function CategoryPage() {
                           variant={currentPage === page ? 'default' : 'outline'}
                           size="sm"
                           onClick={() => setCurrentPage(page)}
-                          className="min-w-[40px]"
+                          className="min-w-[40px] dark:bg-transparent"
                         >
                           {page}
                         </Button>
@@ -442,7 +432,7 @@ export default function CategoryPage() {
                   size="sm"
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  className="hidden sm:flex"
+                  className="hidden sm:flex dark:bg-transparent"
                 >
                   Next
                   <ChevronRight className="w-4 h-4 ml-1" />
@@ -453,5 +443,17 @@ export default function CategoryPage() {
         </div>
       </section>
     </div>
+  )
+}
+
+export default function CategoryPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
+      </div>
+    }>
+      <CategoryContent />
+    </Suspense>
   )
 }
