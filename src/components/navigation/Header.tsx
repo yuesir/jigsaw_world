@@ -1,0 +1,220 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import { Search, Menu, X, Puzzle, Sparkles } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { ThemeToggle } from '@/components/theme/ThemeToggle'
+import { cn } from '@/lib/utils'
+
+export function Header() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`
+    }
+  }
+
+  const navLinks = [
+    { href: '/daily', label: 'Daily Puzzle', icon: Sparkles },
+    { href: '/categories', label: 'Categories' },
+    { 
+      label: 'Explore', 
+      children: [
+        { href: '/explore/weekly', label: 'Most Played This Week' },
+        { href: '/explore/all-time', label: 'Most Played All Time' },
+        { href: '/explore/trending', label: 'Trending Searches' },
+      ]
+    },
+  ]
+
+  return (
+    <header className="sticky top-0 z-50 glass border-b border-border">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link href="/" className="flex items-center space-x-2 group">
+            <div className="relative">
+              <Puzzle className="h-8 w-8 text-primary transition-transform duration-300 group-hover:rotate-12" />
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              JigsawWorld
+            </span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-1">
+            {navLinks.map((link) => (
+              link.children ? (
+                <div key={link.label} className="relative group">
+                  <button className="flex items-center px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors rounded-lg hover:bg-accent">
+                    {link.label}
+                    <svg className="ml-1 h-4 w-4 transition-transform duration-200 group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div className="absolute top-full left-0 mt-1 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="bg-popover border border-border rounded-xl shadow-lg overflow-hidden">
+                      {link.children.map((child) => (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          className="block px-4 py-3 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                        >
+                          {child.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href!}
+                  className="flex items-center px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors rounded-lg hover:bg-accent"
+                >
+                  {link.icon && <link.icon className="w-4 h-4 mr-2" />}
+                  {link.label}
+                </Link>
+              )
+            ))}
+          </nav>
+
+          {/* Search Bar */}
+          <form onSubmit={handleSearch} className="hidden lg:flex items-center">
+            <div className={cn(
+              "relative transition-all duration-300",
+              isSearchFocused ? "w-72" : "w-56"
+            )}>
+              <Input
+                type="text"
+                placeholder="Search puzzles..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+                className="w-full pl-10 pr-4 bg-secondary/50 border-transparent focus:bg-background"
+              />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            </div>
+          </form>
+
+          {/* Right Side Actions */}
+          <div className="hidden md:flex items-center space-x-2">
+            <ThemeToggle />
+            
+            <div className="h-6 w-px bg-border mx-2" />
+            
+            <Link href="/login">
+              <Button variant="ghost" size="sm">
+                Login
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button size="sm" className="btn-shine">
+                Register
+              </Button>
+            </Link>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden border-t border-border">
+            <div className="px-2 py-4 space-y-3">
+              {/* Mobile Search */}
+              <form onSubmit={handleSearch} className="mb-4">
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Search puzzles..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10"
+                  />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+              </form>
+
+              {/* Mobile Nav Links */}
+              <Link 
+                href="/daily" 
+                className="flex items-center px-3 py-2 rounded-lg text-base font-medium text-foreground hover:bg-accent transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Sparkles className="w-4 h-4 mr-2 text-accent" />
+                Daily Puzzle
+              </Link>
+              <Link 
+                href="/categories" 
+                className="flex items-center px-3 py-2 rounded-lg text-base font-medium text-foreground hover:bg-accent transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Categories
+              </Link>
+              <div className="px-3 py-2">
+                <span className="text-sm font-medium text-muted-foreground">Explore</span>
+                <div className="mt-2 space-y-1 pl-4">
+                  <Link 
+                    href="/explore/weekly" 
+                    className="block py-1 text-sm text-foreground/80 hover:text-foreground"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Most Played This Week
+                  </Link>
+                  <Link 
+                    href="/explore/all-time" 
+                    className="block py-1 text-sm text-foreground/80 hover:text-foreground"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Most Played All Time
+                  </Link>
+                  <Link 
+                    href="/explore/trending" 
+                    className="block py-1 text-sm text-foreground/80 hover:text-foreground"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Trending Searches
+                  </Link>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-3 mt-3">
+                <div className="flex items-center justify-between px-3 mb-3">
+                  <span className="text-sm font-medium text-muted-foreground">Theme</span>
+                  <ThemeToggle variant="dropdown" />
+                </div>
+                <div className="space-y-2">
+                  <Link href="/login" onClick={() => setIsMenuOpen(false)}>
+                    <Button variant="outline" className="w-full">
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/register" onClick={() => setIsMenuOpen(false)}>
+                    <Button className="w-full">
+                      Register
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </header>
+  )
+}
