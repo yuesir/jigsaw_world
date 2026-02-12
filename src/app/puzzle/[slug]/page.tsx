@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation'
 import { useState, useEffect, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Play, Clock, Users, Star, Trophy, Calendar, Puzzle, TrendingUp, ArrowLeft, Share2, Heart } from 'lucide-react'
+import { Play, Clock, Users, Star, Trophy, Calendar, Puzzle, TrendingUp, ArrowLeft, Share2, Heart, ChevronRight, Home } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -164,25 +164,37 @@ function PuzzleDetailContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-background dark:bg-[#08080c] relative overflow-hidden">
+      {/* Ambient Background Glow */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] mix-blend-screen" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] mix-blend-screen" />
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
-        <div className="mb-6">
-          <Link 
-            href="/"
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back to puzzles
+        <nav className="flex items-center text-sm text-muted-foreground mb-8 animate-fade-in">
+          <Link href="/" className="hover:text-primary transition-colors flex items-center">
+            <Home className="w-4 h-4 mr-1" />
+            Home
           </Link>
-        </div>
+          <ChevronRight className="w-4 h-4 mx-2" />
+          <Link href="/categories" className="hover:text-primary transition-colors">Categories</Link>
+          <ChevronRight className="w-4 h-4 mx-2" />
+          <Link href={`/category/${puzzle.category.toLowerCase()}`} className="hover:text-primary transition-colors">
+            {puzzle.category}
+          </Link>
+          <ChevronRight className="w-4 h-4 mx-2" />
+          <span className="text-foreground font-medium truncate max-w-[200px]">{puzzle.title}</span>
+        </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-8 animate-fade-in">
             {/* Puzzle Preview */}
             <div className="relative group">
-              <Card className="overflow-hidden border-0 shadow-2xl dark:bg-card dark:border dark:border-white/10">
+              <div className="absolute -inset-1 bg-gradient-to-r from-primary via-purple-500 to-accent rounded-2xl blur opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
+              <Card className="relative overflow-hidden border-0 shadow-2xl bg-card dark:bg-[#121218] dark:border dark:border-white/10">
                 <CardContent className="p-0">
                   <div className="relative aspect-[4/3]">
                     <Image
@@ -192,17 +204,17 @@ function PuzzleDetailContent() {
                       className="object-cover"
                       priority
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     
                     {/* Badges */}
                     <div className="absolute top-4 left-4 flex gap-2">
                       <span className={cn(
-                        "inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold backdrop-blur-sm",
+                        "inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold backdrop-blur-md shadow-lg border border-white/10",
                         getDifficultyStyle(puzzle.difficulty)
                       )}>
                         {puzzle.difficulty}
                       </span>
-                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-white/95 dark:bg-white/90 text-foreground backdrop-blur-sm">
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-white/95 dark:bg-white/90 text-black backdrop-blur-md shadow-lg">
                         {puzzle.category}
                       </span>
                     </div>
@@ -212,23 +224,22 @@ function PuzzleDetailContent() {
                       <button 
                         onClick={() => setIsLiked(!isLiked)}
                         className={cn(
-                          "p-2.5 rounded-full backdrop-blur-sm transition-all duration-200",
-                          isLiked ? "bg-red-500 text-white" : "bg-white/95 dark:bg-white/90 text-foreground hover:bg-white"
+                          "p-2.5 rounded-full backdrop-blur-md shadow-lg border border-white/10 transition-all duration-200 hover:scale-110",
+                          isLiked ? "bg-red-500 text-white border-red-500" : "bg-black/30 text-white hover:bg-black/50"
                         )}
                       >
                         <Heart className={cn("w-5 h-5", isLiked && "fill-current")} />
                       </button>
-                      <button className="p-2.5 rounded-full bg-white/95 dark:bg-white/90 text-foreground backdrop-blur-sm hover:bg-white transition-colors">
+                      <button className="p-2.5 rounded-full bg-black/30 text-white backdrop-blur-md shadow-lg border border-white/10 hover:bg-black/50 hover:scale-110 transition-all">
                         <Share2 className="w-5 h-5" />
                       </button>
                     </div>
 
                     {/* Hover play overlay */}
                     <Link href={`/play/${puzzle.id}`}>
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/50 backdrop-blur-sm">
-                        <Button size="lg" className="bg-white text-foreground hover:bg-white/90 scale-90 group-hover:scale-100 transition-transform shadow-xl">
-                          <Play className="w-5 h-5 mr-2 fill-current" />
-                          Start Puzzle
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/40 backdrop-blur-[2px]">
+                        <Button size="lg" className="rounded-full h-16 w-16 p-0 bg-white text-black hover:bg-white/90 hover:scale-110 transition-all shadow-2xl">
+                          <Play className="w-6 h-6 ml-1 fill-current" />
                         </Button>
                       </div>
                     </Link>
@@ -238,73 +249,77 @@ function PuzzleDetailContent() {
             </div>
 
             {/* Puzzle Info */}
-            <Card className="border-0 shadow-lg dark:bg-card dark:border dark:border-white/10">
+            <Card className="border-0 shadow-lg bg-white/50 dark:bg-[#121218]/50 backdrop-blur-sm border-border/50 dark:border-white/10">
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div>
-                    <CardTitle className="text-3xl mb-2">{puzzle.title}</CardTitle>
-                    <CardDescription className="text-base">
+                    <CardTitle className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 dark:from-white dark:to-white/70">
+                      {puzzle.title}
+                    </CardTitle>
+                    <CardDescription className="text-base leading-relaxed">
                       {puzzle.description}
                     </CardDescription>
                   </div>
-                  <div className="flex items-center gap-1 bg-secondary dark:bg-secondary/50 px-3 py-2 rounded-xl">
-                    {renderStars(puzzle.rating)}
-                    <span className="font-bold text-foreground ml-2">{puzzle.rating.toFixed(1)}</span>
+                  <div className="flex items-center gap-2 bg-secondary/50 dark:bg-white/5 px-4 py-2 rounded-xl border border-border/50 dark:border-white/5 backdrop-blur-sm">
+                    <div className="flex gap-0.5">
+                      {renderStars(puzzle.rating)}
+                    </div>
+                    <span className="font-bold text-foreground dark:text-white ml-2 text-lg">{puzzle.rating.toFixed(1)}</span>
                   </div>
                 </div>
               </CardHeader>
               
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-8">
                 {/* Quick Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="stat-card">
-                    <div className="w-10 h-10 mx-auto mb-2 rounded-lg bg-primary-subtle dark:bg-primary/20 flex items-center justify-center">
-                      <Puzzle className="h-5 w-5 text-primary" />
+                  <div className="p-4 rounded-2xl bg-secondary/30 dark:bg-white/5 border border-border/50 dark:border-white/5 text-center group hover:bg-secondary/50 dark:hover:bg-white/10 transition-colors">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Puzzle className="h-6 w-6 text-primary" />
                     </div>
-                    <div className="text-2xl font-bold text-foreground">{puzzle.piece_count}</div>
-                    <div className="text-xs text-muted-foreground">Pieces</div>
+                    <div className="text-2xl font-bold text-foreground dark:text-white mb-1">{puzzle.piece_count}</div>
+                    <div className="text-xs font-medium text-muted-foreground">Pieces</div>
                   </div>
                   
-                  <div className="stat-card">
-                    <div className="w-10 h-10 mx-auto mb-2 rounded-lg bg-success-subtle dark:bg-success/20 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-success" />
+                  <div className="p-4 rounded-2xl bg-secondary/30 dark:bg-white/5 border border-border/50 dark:border-white/5 text-center group hover:bg-secondary/50 dark:hover:bg-white/10 transition-colors">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-green-500/10 dark:bg-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
                     </div>
-                    <div className="text-2xl font-bold text-foreground">{gameStats.total_plays.toLocaleString()}</div>
-                    <div className="text-xs text-muted-foreground">Total Plays</div>
+                    <div className="text-2xl font-bold text-foreground dark:text-white mb-1">{gameStats.total_plays.toLocaleString()}</div>
+                    <div className="text-xs font-medium text-muted-foreground">Total Plays</div>
                   </div>
                   
-                  <div className="stat-card">
-                    <div className="w-10 h-10 mx-auto mb-2 rounded-lg bg-warning-subtle dark:bg-warning/20 flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5 text-warning" />
+                  <div className="p-4 rounded-2xl bg-secondary/30 dark:bg-white/5 border border-border/50 dark:border-white/5 text-center group hover:bg-secondary/50 dark:hover:bg-white/10 transition-colors">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <TrendingUp className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                     </div>
-                    <div className="text-2xl font-bold text-foreground">{gameStats.completion_rate}%</div>
-                    <div className="text-xs text-muted-foreground">Completion Rate</div>
+                    <div className="text-2xl font-bold text-foreground dark:text-white mb-1">{gameStats.completion_rate}%</div>
+                    <div className="text-xs font-medium text-muted-foreground">Completion Rate</div>
                   </div>
                   
-                  <div className="stat-card">
-                    <div className="w-10 h-10 mx-auto mb-2 rounded-lg bg-info-subtle dark:bg-info/20 flex items-center justify-center">
-                      <Clock className="h-5 w-5 text-info" />
+                  <div className="p-4 rounded-2xl bg-secondary/30 dark:bg-white/5 border border-border/50 dark:border-white/5 text-center group hover:bg-secondary/50 dark:hover:bg-white/10 transition-colors">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <div className="text-2xl font-bold text-foreground">{formatTime(gameStats.average_completion_time)}</div>
-                    <div className="text-xs text-muted-foreground">Avg. Time</div>
+                    <div className="text-2xl font-bold text-foreground dark:text-white mb-1">{formatTime(gameStats.average_completion_time)}</div>
+                    <div className="text-xs font-medium text-muted-foreground">Avg. Time</div>
                   </div>
                 </div>
 
                 {/* Additional Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-border dark:border-white/10">
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-secondary dark:bg-secondary/30">
-                    <span className="text-muted-foreground flex items-center">
-                      <Trophy className="w-4 h-4 mr-2" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6 border-t border-border/50 dark:border-white/10">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/20 dark:bg-white/5 border border-border/50 dark:border-white/5">
+                    <span className="text-muted-foreground flex items-center font-medium">
+                      <Trophy className="w-4 h-4 mr-2 text-yellow-500" />
                       Best Time
                     </span>
-                    <span className="font-semibold text-foreground">{formatTime(gameStats.best_time)}</span>
+                    <span className="font-bold text-foreground dark:text-white font-mono">{formatTime(gameStats.best_time)}</span>
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-secondary dark:bg-secondary/30">
-                    <span className="text-muted-foreground flex items-center">
-                      <Calendar className="w-4 h-4 mr-2" />
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/20 dark:bg-white/5 border border-border/50 dark:border-white/5">
+                    <span className="text-muted-foreground flex items-center font-medium">
+                      <Calendar className="w-4 h-4 mr-2 text-primary" />
                       Added
                     </span>
-                    <span className="font-semibold text-foreground">{new Date(puzzle.created_at).toLocaleDateString()}</span>
+                    <span className="font-bold text-foreground dark:text-white">{new Date(puzzle.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
               </CardContent>
@@ -312,26 +327,28 @@ function PuzzleDetailContent() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
             {/* Play Card */}
-            <Card className="border-0 shadow-lg overflow-hidden dark:bg-card dark:border dark:border-white/10">
-              <div className="bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground">
-                <h3 className="text-xl font-bold mb-2">Ready to play?</h3>
-                <p className="text-primary-foreground/80 text-sm mb-6">
+            <Card className="border-0 shadow-lg overflow-hidden dark:bg-[#121218] dark:border dark:border-white/10 relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative bg-gradient-to-br from-primary to-primary/80 p-8 text-primary-foreground">
+                <div className="absolute top-0 right-0 p-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <h3 className="text-2xl font-bold mb-2 relative z-10">Ready to play?</h3>
+                <p className="text-primary-foreground/90 text-sm mb-8 relative z-10 font-medium">
                   Challenge yourself with this {puzzle.piece_count}-piece puzzle
                 </p>
                 <Link href={`/play/${puzzle.id}`}>
-                  <Button size="lg" className="w-full bg-white text-primary hover:bg-white/90 btn-shine">
+                  <Button size="lg" className="w-full bg-white text-primary hover:bg-white/90 shadow-lg hover:shadow-xl hover:scale-105 transition-all font-bold h-12">
                     <Play className="w-5 h-5 mr-2 fill-current" />
                     Start Puzzle
                   </Button>
                 </Link>
               </div>
-              <CardContent className="p-4">
+              <CardContent className="p-6 bg-card dark:bg-[#121218] relative z-10">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Difficulty</span>
+                  <span className="text-muted-foreground font-medium">Difficulty Level</span>
                   <span className={cn(
-                    "px-2 py-0.5 rounded-full text-xs font-medium",
+                    "px-3 py-1 rounded-full text-xs font-bold border",
                     getDifficultyStyle(puzzle.difficulty)
                   )}>
                     {puzzle.difficulty}
@@ -341,91 +358,44 @@ function PuzzleDetailContent() {
             </Card>
 
             {/* Leaderboard */}
-            <Card className="border-0 shadow-lg dark:bg-card dark:border dark:border-white/10">
-              <CardHeader>
+            <Card className="border-0 shadow-lg dark:bg-[#121218]/80 dark:border dark:border-white/10 backdrop-blur-sm">
+              <CardHeader className="pb-4">
                 <CardTitle className="flex items-center text-lg">
-                  <Trophy className="h-5 w-5 mr-2 text-warning" />
+                  <Trophy className="h-5 w-5 mr-2 text-yellow-500" />
                   Leaderboard
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="divide-y divide-border dark:divide-white/10">
+                <div className="divide-y divide-border/50 dark:divide-white/5">
                   {leaderboard.map((entry) => (
-                    <div key={entry.id} className="px-4 py-3 hover:bg-secondary/50 dark:hover:bg-white/5 transition-colors leaderboard-item">
+                    <div key={entry.id} className="px-6 py-4 hover:bg-secondary/30 dark:hover:bg-white/5 transition-colors group">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
                           <div className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border",
+                            "w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border shadow-sm transition-transform group-hover:scale-110",
                             getRankStyle(entry.rank)
                           )}>
                             {entry.rank <= 3 ? entry.avatar : entry.rank}
                           </div>
                           <div>
-                            <div className="font-semibold text-foreground text-sm">{entry.username}</div>
+                            <div className="font-bold text-foreground dark:text-white text-sm">{entry.username}</div>
                             <div className="text-xs text-muted-foreground">
                               {new Date(entry.completed_at).toLocaleDateString()}
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-semibold text-foreground text-sm">{formatTime(entry.completion_time)}</div>
+                          <div className="font-bold text-foreground dark:text-white text-sm font-mono">{formatTime(entry.completion_time)}</div>
                           <div className="text-xs text-muted-foreground">completed</div>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="p-4 border-t border-border dark:border-white/10">
-                  <Button variant="ghost" className="w-full text-sm">
+                <div className="p-4 border-t border-border/50 dark:border-white/5">
+                  <Button variant="ghost" className="w-full text-sm font-medium hover:bg-secondary dark:hover:bg-white/5">
                     View Full Leaderboard
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Stats */}
-            <Card className="border-0 shadow-lg dark:bg-card dark:border dark:border-white/10">
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      <span>Average Time</span>
-                    </div>
-                    <span className="font-semibold text-foreground">{formatTime(gameStats.average_completion_time)}</span>
-                  </div>
-                  <div className="w-full bg-secondary dark:bg-secondary/30 rounded-full h-1.5">
-                    <div className="bg-primary h-1.5 rounded-full" style={{ width: '65%' }} />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Trophy className="h-4 w-4" />
-                      <span>Best Time</span>
-                    </div>
-                    <span className="font-semibold text-foreground">{formatTime(gameStats.best_time)}</span>
-                  </div>
-                  <div className="w-full bg-secondary dark:bg-secondary/30 rounded-full h-1.5">
-                    <div className="bg-success h-1.5 rounded-full" style={{ width: '40%' }} />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      <span>Total Players</span>
-                    </div>
-                    <span className="font-semibold text-foreground">{gameStats.total_completions.toLocaleString()}</span>
-                  </div>
-                  <div className="w-full bg-secondary dark:bg-secondary/30 rounded-full h-1.5">
-                    <div className="bg-warning h-1.5 rounded-full" style={{ width: '85%' }} />
-                  </div>
                 </div>
               </CardContent>
             </Card>
