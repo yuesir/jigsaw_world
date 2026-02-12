@@ -126,7 +126,7 @@ export function HeroSection() {
                 </Button>
               </Link>
               <Link href={`/p/${dailyPuzzle.id}`}>
-                <Button size="lg" variant="outline" className="text-base px-8 h-12 group bg-card dark:bg-transparent">
+                <Button size="lg" variant="outline" className="text-base px-8 h-12 group bg-card dark:bg-transparent dark:text-white dark:border-white/20 dark:hover:bg-white/10 dark:hover:border-white/40">
                   View Details
                   <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                 </Button>

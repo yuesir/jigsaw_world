@@ -58,24 +58,24 @@ export function RecommendationsSection() {
   }
 
   return (
-    <section className="py-20 section-alt">
+    <section className="py-20 section-alt dark:bg-[#0c0c12]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-12">
           <div className="mb-6 md:mb-0">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-subtle dark:bg-primary/20 text-primary mb-4 border border-primary/20">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-subtle dark:bg-primary/10 text-primary mb-4 border border-primary/20 dark:border-primary/20 shadow-sm">
               <Star className="w-4 h-4 mr-1" />
               Featured
             </span>
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground dark:text-white mb-3 tracking-tight">
               Today&apos;s Recommendations
             </h2>
-            <p className="text-lg text-muted-foreground max-w-xl">
+            <p className="text-lg text-muted-foreground dark:text-gray-400 max-w-xl">
               Discover amazing puzzles handpicked just for you by our community
             </p>
           </div>
           <Link href="/explore/all">
-            <Button variant="outline" className="group bg-card dark:bg-transparent">
+            <Button variant="outline" className="group bg-card dark:bg-transparent dark:border-white/10 dark:text-white dark:hover:bg-white/5 dark:hover:border-white/20 transition-all">
               View All Puzzles
               <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
             </Button>
@@ -89,7 +89,7 @@ export function RecommendationsSection() {
               key={puzzle.id} 
               className={cn(
                 "group overflow-hidden card-hover border-0 shadow-lg",
-                "dark:bg-card dark:border dark:border-white/10",
+                "dark:bg-[#15151a] dark:border dark:border-white/10 dark:shadow-lg dark:shadow-black/20 dark:hover:shadow-xl dark:hover:shadow-primary/5 dark:hover:border-primary/20 transition-all duration-300",
                 "animate-fade-in"
               )}
               style={{ animationDelay: `${index * 100}ms` }}
@@ -108,7 +108,7 @@ export function RecommendationsSection() {
                   {/* Difficulty badge */}
                   <div className="absolute top-4 right-4">
                     <span className={cn(
-                      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-sm",
+                      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-sm shadow-sm",
                       getDifficultyStyle(puzzle.difficulty)
                     )}>
                       {puzzle.difficulty}
@@ -128,13 +128,13 @@ export function RecommendationsSection() {
               </CardHeader>
               
               <CardContent className="p-6">
-                <CardTitle className="text-xl font-semibold text-foreground mb-3 group-hover:text-primary transition-colors">
+                <CardTitle className="text-xl font-semibold text-foreground dark:text-white mb-3 group-hover:text-primary dark:group-hover:text-primary-400 transition-colors tracking-tight">
                   {puzzle.title}
                 </CardTitle>
                 
                 {/* Stats row */}
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground dark:text-gray-400">
                     <span className="flex items-center gap-1">
                       <Puzzle className="w-4 h-4" />
                       {puzzle.piece_count}
@@ -144,20 +144,20 @@ export function RecommendationsSection() {
                       {puzzle.rating}
                     </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground dark:text-gray-500">
                     {puzzle.plays.toLocaleString()} plays
                   </span>
                 </div>
                 
                 {/* Action row */}
-                <div className="flex items-center justify-between pt-4 border-t border-border dark:border-white/10">
-                  <span className="text-sm text-muted-foreground">
+                <div className="flex items-center justify-between pt-4 border-t border-border dark:border-white/5">
+                  <span className="text-sm text-muted-foreground dark:text-gray-400">
                     <Clock className="w-4 h-4 inline mr-1" />
                     ~{Math.round(puzzle.piece_count / 10)} min
                   </span>
                   <Link 
                     href={`/p/${puzzle.id}`}
-                    className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                    className="text-sm font-medium text-primary dark:text-primary-400 hover:text-primary/80 dark:hover:text-primary-300 transition-colors"
                   >
                     Details →
                   </Link>
@@ -169,7 +169,7 @@ export function RecommendationsSection() {
 
         {/* Bottom CTA */}
         <div className="mt-16 text-center">
-          <div className="inline-flex flex-col sm:flex-row items-center gap-4 p-6 rounded-2xl bg-card dark:bg-card/80 border border-border dark:border-white/10 shadow-lg">
+          <div className="inline-flex flex-col sm:flex-row items-center gap-4 p-6 rounded-2xl bg-card dark:bg-card/50 border border-border dark:border-white/5 shadow-lg backdrop-blur-sm">
             <div className="text-center sm:text-left">
               <p className="font-semibold text-foreground">Want more puzzles?</p>
               <p className="text-sm text-muted-foreground">Browse our collection of 1000+ puzzles</p>

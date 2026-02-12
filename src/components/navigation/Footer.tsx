@@ -32,17 +32,18 @@ const socialLinks = [
 
 export function Footer() {
   return (
-    <footer className="bg-card dark:bg-card/50 border-t border-border dark:border-white/10">
+    <footer className="bg-muted/30 dark:bg-[#050508] border-t border-border dark:border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer */}
         <div className="py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center space-x-2 group mb-4">
-              <div className="relative">
-                <Puzzle className="h-8 w-8 text-primary transition-transform duration-300 group-hover:rotate-12" />
+              <div className="relative p-1">
+                <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Puzzle className="relative h-8 w-8 text-primary transition-transform duration-300 group-hover:rotate-12" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent tracking-tight">
                 JigsawWorld
               </span>
             </Link>
@@ -55,7 +56,7 @@ export function Footer() {
                 <a
                   key={social.label}
                   href={social.href}
-                  className="w-10 h-10 rounded-lg bg-secondary dark:bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 dark:hover:bg-secondary transition-colors"
+                  className="w-10 h-10 rounded-lg bg-background dark:bg-white/5 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/10 dark:hover:bg-white/10 hover:shadow-lg transition-all"
                   aria-label={social.label}
                 >
                   <social.icon className="h-5 w-5" />
@@ -72,7 +73,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link 
                     href={link.href} 
-                    className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                    className="text-muted-foreground hover:text-primary dark:hover:text-primary transition-colors text-sm"
                   >
                     {link.label}
                   </Link>
@@ -89,7 +90,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link 
                     href={link.href} 
-                    className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                    className="text-muted-foreground hover:text-primary dark:hover:text-primary transition-colors text-sm"
                   >
                     {link.label}
                   </Link>
@@ -106,7 +107,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link 
                     href={link.href} 
-                    className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                    className="text-muted-foreground hover:text-primary dark:hover:text-primary transition-colors text-sm"
                   >
                     {link.label}
                   </Link>
@@ -117,7 +118,7 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="py-6 border-t border-border dark:border-white/10">
+        <div className="py-6 border-t border-border dark:border-white/5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">
               &copy; {new Date().getFullYear()} JigsawWorld. All rights reserved.

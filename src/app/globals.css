@@ -70,16 +70,16 @@
 .dark {
   /* Background - Deep slate */
   --color-background: #0a0a0f;
-  --color-foreground: #f1f5f9;
+  --color-foreground: #ffffff;
   
   /* Card colors - Slightly lighter than bg for depth */
   --color-card: #13131a;
-  --color-card-foreground: #f1f5f9;
+  --color-card-foreground: #ffffff;
   --color-card-hover: #1a1a24;
   
   /* Popover colors */
   --color-popover: #1a1a24;
-  --color-popover-foreground: #f1f5f9;
+  --color-popover-foreground: #ffffff;
   
   /* Primary - Brighter blue for dark mode */
   --color-primary: #60a5fa;
@@ -88,7 +88,7 @@
   
   /* Secondary - Dark slate */
   --color-secondary: #1e293b;
-  --color-secondary-foreground: #cbd5e1;
+  --color-secondary-foreground: #e2e8f0;
   
   /* Muted colors */
   --color-muted: #1e293b;
@@ -132,6 +132,15 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-foreground);
+}
+
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: #ffffff;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
 html {
