@@ -168,18 +168,44 @@ export function RecommendationsSection() {
         </div>
 
         {/* Bottom CTA */}
-        <div className="mt-16 text-center">
-          <div className="inline-flex flex-col sm:flex-row items-center gap-4 p-6 rounded-2xl bg-card dark:bg-card/50 border border-border dark:border-white/5 shadow-lg backdrop-blur-sm">
-            <div className="text-center sm:text-left">
-              <p className="font-semibold text-foreground">Want more puzzles?</p>
-              <p className="text-sm text-muted-foreground">Browse our collection of 1000+ puzzles</p>
+        <div className="mt-20 text-center relative z-10">
+          <div className="relative inline-flex group">
+            {/* Animated Glow Background */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary via-purple-500 to-accent rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
+            
+            <div className={cn(
+              "relative inline-flex flex-col sm:flex-row items-center gap-6 md:gap-8 p-8 rounded-2xl",
+              "bg-card/80 dark:bg-[#121218]/90 backdrop-blur-xl",
+              "border border-border/50 dark:border-white/10",
+              "shadow-2xl dark:shadow-black/50"
+            )}>
+              <div className="text-center sm:text-left">
+                <p className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 dark:from-white dark:to-white/80">
+                  Want more challenges?
+                </p>
+                <p className="text-sm text-muted-foreground dark:text-gray-400 mt-1">
+                  Browse our collection of <span className="text-primary dark:text-primary-400 font-medium">1000+ puzzles</span>
+                </p>
+              </div>
+              
+              <Link href="/explore/all">
+                <Button 
+                  size="lg"
+                  className={cn(
+                    "relative overflow-hidden transition-all duration-300",
+                    "bg-primary hover:bg-primary/90 text-primary-foreground",
+                    "dark:bg-white dark:text-black dark:hover:bg-white/90",
+                    "shadow-lg hover:shadow-primary/25 dark:hover:shadow-white/20",
+                    "hover:scale-105 active:scale-95"
+                  )}
+                >
+                  <span className="relative z-10 flex items-center font-semibold">
+                    Explore All Puzzles
+                    <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover/btn:translate-x-1" />
+                  </span>
+                </Button>
+              </Link>
             </div>
-            <Link href="/explore/all">
-              <Button className="btn-shine whitespace-nowrap">
-                Explore All
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
           </div>
         </div>
       </div>

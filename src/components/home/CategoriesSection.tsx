@@ -89,81 +89,90 @@ export function CategoriesSection() {
   ]
 
   return (
-    <section className="py-20 bg-background dark:bg-[#08080c]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-24 relative overflow-hidden bg-background dark:bg-[#08080c]">
+      {/* Ambient Background Glow */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] mix-blend-screen" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] mix-blend-screen" />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
-        <div className="text-center mb-16">
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-accent-subtle dark:bg-accent/10 text-accent mb-4 border border-accent/20 dark:border-accent/20 shadow-sm">
-            <Grid3X3 className="w-4 h-4 mr-1" />
-            Browse
-          </span>
+        <div className="text-center mb-20">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground dark:text-white mb-4 tracking-tight">
             Browse by Category
           </h2>
-          <p className="text-lg text-muted-foreground dark:text-gray-400 max-w-2xl mx-auto">
-            Find your perfect puzzle from our curated collections. Each category offers unique challenges and beautiful imagery.
+          <p className="text-lg md:text-xl text-muted-foreground dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+            Explore our curated collections featuring stunning photography and art.
           </p>
         </div>
 
         {/* Categories Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {categories.map((category, index) => {
             const IconComponent = category.icon
             return (
-              <Link key={category.id} href={`/c/${category.slug}`}>
+              <Link key={category.id} href={`/c/${category.slug}`} className="block h-full">
                 <Card 
                   className={cn(
-                    "group overflow-hidden card-hover border-0 shadow-lg cursor-pointer",
-                    "dark:bg-[#121218] dark:border dark:border-white/10 dark:shadow-none dark:hover:shadow-xl dark:hover:shadow-primary/5 dark:hover:border-primary/20 transition-all duration-300",
+                    "group h-full overflow-hidden border-0 shadow-lg cursor-pointer relative",
+                    "bg-white dark:bg-white/5",
+                    "backdrop-blur-md",
+                    "border border-border/50 dark:border-white/10",
+                    "transition-all duration-500 ease-out",
+                    "hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-black/50",
+                    "hover:-translate-y-2 hover:border-primary/20 dark:hover:border-white/20",
                     "animate-fade-in"
                   )}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <CardHeader className="p-0 relative">
-                    <div className="relative aspect-[16/10] overflow-hidden">
-                      <Image
-                        src={category.image_url}
-                        alt={category.name}
-                        fill
-                        className="object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
-                      {/* Gradient overlay */}
-                      <div className={cn(
-                        "absolute inset-0 bg-gradient-to-t opacity-70 transition-opacity duration-300 group-hover:opacity-80",
-                        category.color,
-                        "dark:opacity-80 dark:group-hover:opacity-90"
-                      )} />
-                      
-                      {/* Content overlay */}
-                      <div className="absolute inset-0 p-6 flex flex-col justify-end">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="w-12 h-12 rounded-xl bg-white/20 dark:bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-inner">
-                            <IconComponent className="h-6 w-6 text-white" />
+                  <CardHeader className="p-0 relative aspect-[16/10] overflow-hidden">
+                    <Image
+                      src={category.image_url}
+                      alt={category.name}
+                      fill
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                    
+                    {/* Gradient Overlay */}
+                    <div className={cn(
+                      "absolute inset-0 bg-gradient-to-t opacity-60 transition-opacity duration-500 group-hover:opacity-75",
+                      category.color,
+                      "dark:opacity-70 dark:group-hover:opacity-85"
+                    )} />
+                    
+                    {/* Glass Content Container */}
+                    <div className="absolute inset-0 p-8 flex flex-col justify-end">
+                      <div className="flex items-center justify-between items-end transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                        <div>
+                          <div className="w-14 h-14 rounded-2xl bg-white/20 dark:bg-black/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner mb-4 group-hover:scale-110 transition-transform duration-500">
+                            <IconComponent className="h-7 w-7 text-white" />
                           </div>
+                          <h3 className="text-3xl font-bold text-white mb-2 drop-shadow-md tracking-tight">
+                            {category.name}
+                          </h3>
+                          <p className="text-white/90 text-sm font-medium flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                            {category.puzzle_count} puzzles
+                          </p>
                         </div>
-                        <h3 className="text-2xl font-bold text-white mb-1 drop-shadow-lg tracking-tight">
-                          {category.name}
-                        </h3>
-                        <p className="text-white/90 text-sm drop-shadow-md font-medium">
-                          {category.puzzle_count} puzzles
-                        </p>
-                      </div>
-                      
-                      {/* Hover arrow */}
-                      <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 dark:bg-white/10 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 border border-white/20">
-                        <ArrowRight className="h-5 w-5 text-white" />
+                        
+                        {/* Hover Action Button */}
+                        <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500 delay-100">
+                          <ArrowRight className="w-5 h-5 text-white" />
+                        </div>
                       </div>
                     </div>
                   </CardHeader>
                   
-                  <CardContent className="p-5">
-                    <p className="text-muted-foreground dark:text-gray-400 text-sm leading-relaxed">
+                  <CardContent className="p-8 relative">
+                    {/* Subtle shine effect on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                    
+                    <p className="text-muted-foreground dark:text-gray-400 leading-relaxed text-base relative z-10">
                       {category.description}
                     </p>
-                    <div className="mt-4 flex items-center text-sm font-medium text-primary dark:text-primary-400 group-hover:text-primary/80 dark:group-hover:text-primary-300 transition-colors">
-                      Explore {category.name}
-                      <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
-                    </div>
                   </CardContent>
                 </Card>
               </Link>
@@ -172,14 +181,21 @@ export function CategoriesSection() {
         </div>
 
         {/* View All Categories Link */}
-        <div className="mt-12 text-center">
+        <div className="mt-16 text-center">
           <Link 
             href="/categories"
-            className="inline-flex items-center px-6 py-3 rounded-xl bg-secondary dark:bg-secondary/50 border border-transparent dark:border-white/10 text-secondary-foreground font-medium hover:bg-secondary/80 dark:hover:bg-secondary dark:hover:border-white/20 transition-all shadow-sm"
+            className={cn(
+              "inline-flex items-center px-8 py-4 rounded-full",
+              "bg-secondary/80 dark:bg-white/5 backdrop-blur-sm",
+              "border border-transparent dark:border-white/10",
+              "text-secondary-foreground dark:text-white font-medium",
+              "hover:bg-secondary dark:hover:bg-white/10 dark:hover:border-white/20",
+              "transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105"
+            )}
           >
-            <Grid3X3 className="w-5 h-5 mr-2" />
+            <Grid3X3 className="w-5 h-5 mr-3" />
             View All Categories
-            <ArrowRight className="w-4 h-4 ml-2" />
+            <ArrowRight className="w-4 h-4 ml-2 opacity-70" />
           </Link>
         </div>
       </div>
