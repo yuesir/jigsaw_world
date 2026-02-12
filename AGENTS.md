@@ -24,8 +24,8 @@ JigsawWorld is an online jigsaw puzzle game platform built with Next.js. Users c
 /mnt/host/d/code/jigsaw_world/
 ├── src/
 │   ├── app/                    # Next.js App Router pages
-│   │   ├── c/[slug]/page.tsx   # Category page (/c/nature, /c/ocean, etc.)
-│   │   ├── p/[slug]/page.tsx   # Puzzle detail page
+│   │   ├── category/[slug]/page.tsx   # Category page (/category/nature, /category/ocean, etc.)
+│   │   ├── puzzle/[slug]/page.tsx   # Puzzle detail page
 │   │   ├── play/[slug]/page.tsx # Puzzle game interface
 │   │   ├── search/page.tsx     # Search results page
 │   │   ├── layout.tsx          # Root layout (Header, Footer, Metadata)
