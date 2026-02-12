@@ -149,127 +149,120 @@ function CategoryContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Category Header */}
-      <section className="relative bg-muted/30 dark:bg-secondary/20 border-b border-border overflow-hidden">
-        {/* Decorative background */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 dark:bg-primary/30 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/20 dark:bg-accent/30 rounded-full blur-3xl" />
-        </div>
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center max-w-3xl mx-auto">
-            <Link 
-              href="/categories"
-              className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Back to Categories
-            </Link>
-            
-            <div className="text-5xl mb-4">{category.icon}</div>
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-              {category.name} Puzzles
-            </h1>
-            <p className="text-lg text-muted-foreground mb-8">
-              {category.description}
-            </p>
-            
-            <div className="flex items-center justify-center gap-6">
-              <div className="stat-card">
-                <div className="p-2 rounded-lg bg-primary-subtle dark:bg-primary/20 mx-auto mb-2 w-fit">
-                  <Puzzle className="h-5 w-5 text-primary" />
+    <div className="min-h-screen bg-background dark:bg-[#08080c] relative overflow-hidden">
+      {/* Ambient Background Glow */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] mix-blend-screen" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] mix-blend-screen" />
+      </div>
+
+      <div className="relative z-10">
+        {/* Category Header */}
+        <section className="relative pt-24 pb-12 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Breadcrumb Navigation */}
+            <nav className="flex items-center text-sm text-muted-foreground mb-8 animate-fade-in">
+              <Link href="/" className="hover:text-primary transition-colors">Home</Link>
+              <ChevronRight className="w-4 h-4 mx-2" />
+              <Link href="/categories" className="hover:text-primary transition-colors">Categories</Link>
+              <ChevronRight className="w-4 h-4 mx-2" />
+              <span className="text-foreground font-medium">{category.name}</span>
+            </nav>
+
+            <div className="flex flex-col md:flex-row md:items-end gap-6 mb-8 animate-fade-in" style={{ animationDelay: '100ms' }}>
+              <div className="flex-1">
+                <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary mb-4 border border-primary/20">
+                  <span className="mr-2 text-base">{category.icon}</span>
+                  {category.puzzle_count} Puzzles Collection
                 </div>
-                <p className="text-2xl font-bold text-foreground">{category.puzzle_count}</p>
-                <p className="text-xs text-muted-foreground">Puzzles</p>
-              </div>
-              
-              <div className="stat-card">
-                <div className="p-2 rounded-lg bg-success-subtle dark:bg-success/20 mx-auto mb-2 w-fit">
-                  <Users className="h-5 w-5 text-success" />
-                </div>
-                <p className="text-2xl font-bold text-foreground">12.5K</p>
-                <p className="text-xs text-muted-foreground">Players</p>
-              </div>
-              
-              <div className="stat-card">
-                <div className="p-2 rounded-lg bg-warning-subtle dark:bg-warning/20 mx-auto mb-2 w-fit">
-                  <Clock className="h-5 w-5 text-warning" />
-                </div>
-                <p className="text-2xl font-bold text-foreground">25min</p>
-                <p className="text-xs text-muted-foreground">Avg. Time</p>
+                <h1 className="text-4xl md:text-5xl font-bold text-foreground dark:text-white mb-4 tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 dark:from-white dark:to-white/70">
+                  {category.name} Puzzles
+                </h1>
+                <p className="text-lg text-muted-foreground dark:text-gray-400 max-w-2xl leading-relaxed">
+                  {category.description}
+                </p>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Puzzles Grid */}
-      <section className="py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Toolbar */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-            <p className="text-muted-foreground">
-              Showing <span className="font-semibold text-foreground">{paginatedPuzzles.length}</span> of{' '}
-              <span className="font-semibold text-foreground">{puzzles.length}</span> puzzles
-            </p>
-            
-            <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm" className="hidden sm:flex dark:bg-transparent">
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
+        {/* Puzzles Grid */}
+        <section className="pb-24">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 sticky top-20 z-20 bg-background/80 dark:bg-[#08080c]/80 backdrop-blur-xl p-4 rounded-2xl border border-border/50 dark:border-white/10 shadow-sm">
+              <p className="text-muted-foreground text-sm">
+                Showing <span className="font-semibold text-foreground dark:text-white">{paginatedPuzzles.length}</span> of{' '}
+                <span className="font-semibold text-foreground dark:text-white">{puzzles.length}</span> puzzles
+              </p>
               
-              <div className="flex items-center border rounded-lg p-1 dark:border-white/10">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={cn(
-                    "p-2 rounded-md transition-colors",
-                    viewMode === 'grid' ? "bg-secondary dark:bg-secondary/50" : "hover:bg-secondary/50 dark:hover:bg-secondary/30"
-                  )}
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={cn(
-                    "p-2 rounded-md transition-colors",
-                    viewMode === 'list' ? "bg-secondary dark:bg-secondary/50" : "hover:bg-secondary/50 dark:hover:bg-secondary/30"
-                  )}
-                >
-                  <List className="w-4 h-4" />
-                </button>
+              <div className="flex items-center gap-3">
+                <Button variant="outline" size="sm" className="hidden sm:flex bg-transparent border-border/50 dark:border-white/10 hover:bg-accent/5">
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filter
+                </Button>
+                
+                <div className="flex items-center bg-muted/50 dark:bg-white/5 rounded-lg p-1 border border-border/50 dark:border-white/5">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={cn(
+                      "p-2 rounded-md transition-all duration-200",
+                      viewMode === 'grid' 
+                        ? "bg-background dark:bg-white/10 text-foreground shadow-sm" 
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/50 dark:hover:bg-white/5"
+                    )}
+                  >
+                    <Grid3X3 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={cn(
+                      "p-2 rounded-md transition-all duration-200",
+                      viewMode === 'list' 
+                        ? "bg-background dark:bg-white/10 text-foreground shadow-sm" 
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/50 dark:hover:bg-white/5"
+                    )}
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Grid View */}
-          {viewMode === 'grid' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {paginatedPuzzles.map((puzzle, index) => (
-                <Card 
-                  key={puzzle.id} 
-                  className={cn(
-                    "group overflow-hidden card-hover border-0 shadow-lg",
-                    "dark:bg-card dark:border dark:border-white/10",
-                    "animate-fade-in"
-                  )}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <CardHeader className="p-0">
-                    <div className="relative aspect-[4/3] overflow-hidden">
+            {/* Grid View */}
+            {viewMode === 'grid' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {paginatedPuzzles.map((puzzle, index) => (
+                  <Card 
+                    key={puzzle.id} 
+                    className={cn(
+                      "group overflow-hidden border-0 shadow-lg cursor-pointer relative",
+                      "bg-white dark:bg-[#121218]/50",
+                      "backdrop-blur-sm",
+                      "border border-border/50 dark:border-white/10",
+                      "transition-all duration-300 ease-out",
+                      "hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-black/50",
+                      "hover:-translate-y-1 hover:border-primary/20 dark:hover:border-white/20",
+                      "animate-fade-in"
+                    )}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <CardHeader className="p-0 relative aspect-[4/3] overflow-hidden">
                       <Image
                         src={puzzle.image_url}
                         alt={puzzle.title}
                         fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-110"
+                        className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       
-                      <div className="absolute top-3 right-3">
+                      {/* Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+                      
+                      {/* Badges */}
+                      <div className="absolute top-3 right-3 flex gap-2">
                         <span className={cn(
-                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-sm",
+                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md shadow-lg border border-white/10",
                           getDifficultyStyle(puzzle.difficulty)
                         )}>
                           {puzzle.difficulty}
@@ -278,170 +271,205 @@ function CategoryContent() {
                       
                       {/* Hover play button */}
                       <Link href={`/play/${puzzle.id}`}>
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-                          <Button size="sm" className="bg-white text-foreground hover:bg-white/90">
-                            <span className="mr-1">▶</span>
-                            Play
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/20 backdrop-blur-[2px]">
+                          <Button size="sm" className="rounded-full w-12 h-12 p-0 bg-white text-black hover:bg-white/90 hover:scale-105 transition-all shadow-xl">
+                            <span className="ml-1 text-xl">▶</span>
                           </Button>
                         </div>
                       </Link>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-foreground mb-2 line-clamp-1 group-hover:text-primary transition-colors">
-                      {puzzle.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {puzzle.description}
-                    </p>
-                    
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center text-muted-foreground">
-                          <Puzzle className="w-3.5 h-3.5 mr-1" />
-                          {puzzle.piece_count}
-                        </span>
-                        <span className="flex items-center text-muted-foreground">
-                          <Users className="w-3.5 h-3.5 mr-1" />
-                          {puzzle.plays_count.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center">
-                        {renderStars(puzzle.rating)}
-                        <span className="ml-1 text-xs text-muted-foreground">{puzzle.rating.toFixed(1)}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
 
-          {/* List View */}
-          {viewMode === 'list' && (
-            <div className="space-y-4">
-              {paginatedPuzzles.map((puzzle) => (
-                <Card 
-                  key={puzzle.id} 
-                  className="group overflow-hidden hover:shadow-lg transition-all duration-300 dark:bg-card dark:border dark:border-white/10"
-                >
-                  <div className="flex flex-col sm:flex-row">
-                    <div className="relative w-full sm:w-48 h-48 sm:h-auto flex-shrink-0">
-                      <Image
-                        src={puzzle.image_url}
-                        alt={puzzle.title}
-                        fill
-                        className="object-cover"
-                      />
-                      <div className="absolute top-3 left-3">
-                        <span className={cn(
-                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-sm",
-                          getDifficultyStyle(puzzle.difficulty)
-                        )}>
-                          {puzzle.difficulty}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 p-6 flex flex-col justify-between">
-                      <div>
-                        <h3 className="text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                      {/* Bottom Info Overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                        <h3 className="font-bold text-white mb-1 line-clamp-1 drop-shadow-md">
                           {puzzle.title}
                         </h3>
-                        <p className="text-muted-foreground mb-4">
-                          {puzzle.description}
-                        </p>
-                        
-                        <div className="flex flex-wrap items-center gap-4 text-sm">
-                          <span className="flex items-center text-muted-foreground">
-                            <Puzzle className="w-4 h-4 mr-1" />
-                            {puzzle.piece_count} pieces
+                        <div className="flex items-center justify-between text-xs text-white/80">
+                          <span className="flex items-center">
+                            <Puzzle className="w-3.5 h-3.5 mr-1" />
+                            {puzzle.piece_count}
                           </span>
-                          <span className="flex items-center text-muted-foreground">
-                            <Users className="w-4 h-4 mr-1" />
-                            {puzzle.plays_count.toLocaleString()} plays
-                          </span>
-                          <span className="flex items-center text-muted-foreground">
-                            <Star className="w-4 h-4 mr-1 text-warning fill-warning" />
+                          <span className="flex items-center">
+                            <Star className="w-3.5 h-3.5 mr-1 text-yellow-400 fill-yellow-400" />
                             {puzzle.rating.toFixed(1)}
                           </span>
                         </div>
                       </div>
+                    </CardHeader>
+                    
+                    <CardContent className="p-4 relative">
+                      {/* Subtle shine effect on hover */}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                       
-                      <div className="flex gap-3 mt-4 sm:mt-0">
-                        <Link href={`/p/${puzzle.id}`} className="flex-1 sm:flex-initial">
-                          <Button variant="outline" size="sm" className="w-full sm:w-auto dark:bg-transparent">
-                            View Details
-                          </Button>
-                        </Link>
-                        <Link href={`/play/${puzzle.id}`} className="flex-1 sm:flex-initial">
-                          <Button size="sm" className="w-full sm:w-auto">
-                            Play Now
-                          </Button>
-                        </Link>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground dark:text-gray-400 mb-3">
+                        <span className="flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5" />
+                          {puzzle.plays_count.toLocaleString()} plays
+                        </span>
+                        <span className="text-xs opacity-70">
+                          {new Date(puzzle.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      
+                      <Link href={`/p/${puzzle.id}`} className="block">
+                        <Button variant="ghost" size="sm" className="w-full justify-between hover:bg-secondary/50 dark:hover:bg-white/5 group/btn">
+                          View Details
+                          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover/btn:translate-x-1 transition-transform" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* List View */}
+            {viewMode === 'list' && (
+              <div className="space-y-4">
+                {paginatedPuzzles.map((puzzle, index) => (
+                  <Card 
+                    key={puzzle.id} 
+                    className={cn(
+                      "group overflow-hidden border-0 shadow-sm hover:shadow-lg transition-all duration-300",
+                      "bg-white dark:bg-[#121218]/50",
+                      "border border-border/50 dark:border-white/10",
+                      "animate-fade-in"
+                    )}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="flex flex-col sm:flex-row">
+                      <div className="relative w-full sm:w-64 h-48 sm:h-auto flex-shrink-0 overflow-hidden">
+                        <Image
+                          src={puzzle.image_url}
+                          alt={puzzle.title}
+                          fill
+                          className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+                        <div className="absolute top-3 left-3">
+                          <span className={cn(
+                            "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md border border-white/10 shadow-sm",
+                            getDifficultyStyle(puzzle.difficulty)
+                          )}>
+                            {puzzle.difficulty}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1 p-6 flex flex-col justify-between relative">
+                         {/* Subtle shine effect on hover */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
+                        <div>
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="text-xl font-bold text-foreground dark:text-white group-hover:text-primary transition-colors">
+                              {puzzle.title}
+                            </h3>
+                            <div className="flex items-center bg-secondary/50 dark:bg-white/5 px-2 py-1 rounded-md">
+                              <Star className="w-4 h-4 mr-1 text-yellow-400 fill-yellow-400" />
+                              <span className="text-sm font-medium">{puzzle.rating.toFixed(1)}</span>
+                            </div>
+                          </div>
+                          
+                          <p className="text-muted-foreground dark:text-gray-400 mb-4 line-clamp-2">
+                            {puzzle.description}
+                          </p>
+                          
+                          <div className="flex flex-wrap items-center gap-6 text-sm">
+                            <span className="flex items-center text-muted-foreground dark:text-gray-400">
+                              <Puzzle className="w-4 h-4 mr-2 text-primary" />
+                              {puzzle.piece_count} pieces
+                            </span>
+                            <span className="flex items-center text-muted-foreground dark:text-gray-400">
+                              <Users className="w-4 h-4 mr-2 text-primary" />
+                              {puzzle.plays_count.toLocaleString()} plays
+                            </span>
+                            <span className="flex items-center text-muted-foreground dark:text-gray-400">
+                              <Clock className="w-4 h-4 mr-2 text-primary" />
+                              {new Date(puzzle.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-3 mt-6 sm:mt-0 pt-4 border-t border-border/50 dark:border-white/5">
+                          <Link href={`/p/${puzzle.id}`} className="flex-1 sm:flex-initial">
+                            <Button variant="outline" size="sm" className="w-full sm:w-auto bg-transparent border-border/50 dark:border-white/10 hover:bg-secondary/50 dark:hover:bg-white/5">
+                              View Details
+                            </Button>
+                          </Link>
+                          <Link href={`/play/${puzzle.id}`} className="flex-1 sm:flex-initial">
+                            <Button size="sm" className="w-full sm:w-auto shadow-lg shadow-primary/20">
+                              <Play className="w-4 h-4 mr-2" />
+                              Play Now
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
+                  </Card>
+                ))}
+              </div>
+            )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-12">
-              <nav className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className="hidden sm:flex dark:bg-transparent"
-                >
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Previous
-                </Button>
-                
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(page => 
-                      page === 1 || 
-                      page === totalPages || 
-                      (page >= currentPage - 1 && page <= currentPage + 1)
-                    )
-                    .map((page, index, array) => (
-                      <div key={page} className="flex items-center">
-                        {index > 0 && array[index - 1] !== page - 1 && (
-                          <span className="px-2 text-muted-foreground">...</span>
-                        )}
-                        <Button
-                          variant={currentPage === page ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className="min-w-[40px] dark:bg-transparent"
-                        >
-                          {page}
-                        </Button>
-                      </div>
-                    ))}
-                </div>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className="hidden sm:flex dark:bg-transparent"
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </nav>
-            </div>
-          )}
-        </div>
-      </section>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-16">
+                <nav className="flex items-center gap-2 p-2 rounded-xl bg-card/50 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-white/5 shadow-sm">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="hidden sm:flex hover:bg-secondary dark:hover:bg-white/10"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center gap-1 px-2">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(page => 
+                        page === 1 || 
+                        page === totalPages || 
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      )
+                      .map((page, index, array) => (
+                        <div key={page} className="flex items-center">
+                          {index > 0 && array[index - 1] !== page - 1 && (
+                            <span className="px-2 text-muted-foreground">...</span>
+                          )}
+                          <Button
+                            variant={currentPage === page ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className={cn(
+                              "min-w-[36px] h-9 rounded-lg transition-all",
+                              currentPage === page 
+                                ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md" 
+                                : "hover:bg-secondary dark:hover:bg-white/10"
+                            )}
+                          >
+                            {page}
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="hidden sm:flex hover:bg-secondary dark:hover:bg-white/10"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </nav>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   )
 }
