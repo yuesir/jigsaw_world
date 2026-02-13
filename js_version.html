@@ -21,68 +21,44 @@
       place-items: center;
       min-height: 100vh;
     }
-    .app {
-      width: min(1100px, 95vw);
-      display: grid;
-      grid-template-columns: 1fr 280px;
-      gap: 14px;
-    }
-    .board-wrap {
-      background: #0f1726;
-      border: 1px solid #2a3a56;
-      border-radius: 12px;
-      padding: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
-    }
-    canvas {
-      display: block;
-      width: 100%;
-      max-width: 780px;
-      background: #0b1322;
-      border-radius: 8px;
-      border: 1px solid #283650;
-      cursor: grab;
-    }
+    .app { width: min(1150px, 96vw); display: grid; grid-template-columns: 1fr 300px; gap: 14px; }
+    .board-wrap { background: #0f1726; border: 1px solid #2a3a56; border-radius: 12px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    canvas { display: block; width: 100%; max-width: 820px; background: #0b1322; border-radius: 8px; border: 1px solid #283650; cursor: grab; }
     canvas:active { cursor: grabbing; }
-    .panel {
-      background: var(--card);
-      border: 1px solid #2d3c57;
-      border-radius: 12px;
-      padding: 14px;
-      display: grid;
-      gap: 10px;
-      align-content: start;
-    }
-    .row { display: flex; justify-content: space-between; color: var(--muted); }
-    button {
-      border: 0;
-      border-radius: 8px;
-      padding: 10px 12px;
-      background: #2a3854;
-      color: #e8f0ff;
-      cursor: pointer;
-    }
+    .panel { background: var(--card); border: 1px solid #2d3c57; border-radius: 12px; padding: 14px; display: grid; gap: 10px; align-content: start; }
+    .row { display: flex; justify-content: space-between; color: var(--muted); gap: 8px; align-items: center; }
+    .inline { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    label { color: #c9d8f2; font-size: 13px; }
+    select, button { border: 0; border-radius: 8px; padding: 10px 12px; }
+    select { background: #2b3751; color: #e8f0ff; }
+    button { background: #2a3854; color: #e8f0ff; cursor: pointer; }
     button.primary { background: var(--accent); color: #081120; font-weight: 700; }
     button.ok { background: var(--ok); color: #052010; font-weight: 700; }
-    .hint { font-size: 12px; color: #b7c6de; opacity: .9; line-height: 1.4; }
-    .done {
-      display: none;
-      margin-top: 8px;
-      background: #102a1d;
-      border: 1px solid #1e6c43;
-      color: #b9f5d2;
-      border-radius: 8px;
-      padding: 10px;
-      font-weight: 600;
-    }
+    .hint { font-size: 12px; color: #b7c6de; opacity: .92; line-height: 1.5; }
+    .done { display: none; margin-top: 8px; background: #102a1d; border: 1px solid #1e6c43; color: #b9f5d2; border-radius: 8px; padding: 10px; font-weight: 600; }
   </style>
 </head>
 <body>
   <div class="app">
     <div class="board-wrap">
-      <canvas id="board" width="780" height="620"></canvas>
+      <canvas id="board" width="820" height="640"></canvas>
     </div>
     <aside class="panel">
+      <div class="inline">
+        <div>
+          <label for="cols">列数</label>
+          <select id="cols">
+            <option>4</option><option>5</option><option selected>6</option><option>8</option><option>10</option><option>12</option>
+          </select>
+        </div>
+        <div>
+          <label for="rows">行数</label>
+          <select id="rows">
+            <option>3</option><option selected>4</option><option>5</option><option>6</option><option>8</option>
+          </select>
+        </div>
+      </div>
+      <button id="applyPieces">应用分块数量</button>
       <button id="play" class="primary">开始洗牌</button>
       <button id="toggleGhost">显示/隐藏原图</button>
       <button id="reset" class="ok">重新开始</button>
@@ -90,26 +66,38 @@
       <div class="row"><span>时间</span><strong id="time">00:00</strong></div>
       <div class="row"><span>总块数</span><strong id="total">0</strong></div>
       <div class="row"><span>已归位</span><strong id="placed">0</strong></div>
-
       <div id="done" class="done">🎉 拼图完成！</div>
 
       <div class="hint">
-        核心逻辑：<br />
-        1) 边缘类型 POS/NEG/NONE；2) 邻块边缘互补；3) 拖拽 + 吸附；4) 计时与胜利判定。
+        已升级：<br />
+        1) 真正凹凸不规则拼图片轮廓（非矩形）；<br />
+        2) 行列可选，动态改变碎片数量；<br />
+        3) 仍保留 POS/NEG/NONE、邻边互补、拖拽吸附、完成判定。
       </div>
     </aside>
   </div>
 
 <script>
 (() => {
+  const canvas = document.getElementById('board');
+  const ctx = canvas.getContext('2d');
+
+  const elCols = document.getElementById('cols');
+  const elRows = document.getElementById('rows');
+  const elTime = document.getElementById('time');
+  const elTotal = document.getElementById('total');
+  const elPlaced = document.getElementById('placed');
+  const elDone = document.getElementById('done');
+
   const cfg = {
-    tileSize: 80,
     cols: 6,
     rows: 4,
-    boardOffsetX: 140,
+    tileSize: 80,
+    tabSize: 16,
+    boardOffsetX: 170,
     boardOffsetY: 150,
-    snapDistance: 18,
-    ghostAlpha: 0.18,
+    snapDistance: 20,
+    ghostAlpha: 0.16,
   };
 
   const state = {
@@ -120,155 +108,241 @@
     timerId: null,
     tiles: [],
     drag: null,
+    sourceImage: null,
   };
 
-  const canvas = document.getElementById('board');
-  const ctx = canvas.getContext('2d');
-  const elTime = document.getElementById('time');
-  const elTotal = document.getElementById('total');
-  const elPlaced = document.getElementById('placed');
-  const elDone = document.getElementById('done');
+  const POS = 1, NEG = -1, NONE = 0;
+  const randomPosNeg = () => (Math.random() < 0.5 ? POS : NEG);
+  const pad2 = (n) => String(n).padStart(2, '0');
 
-  function pad2(n){ return String(n).padStart(2, '0'); }
-  function setTime(sec){ elTime.textContent = `${pad2(Math.floor(sec/60))}:${pad2(sec%60)}`; }
-  function setCounts(){
+  function updateTileSize() {
+    const maxW = 520;
+    const maxH = 380;
+    cfg.tileSize = Math.max(36, Math.floor(Math.min(maxW / cfg.cols, maxH / cfg.rows)));
+    cfg.tabSize = Math.max(8, Math.floor(cfg.tileSize * 0.2));
+    cfg.boardOffsetX = Math.floor((canvas.width - cfg.cols * cfg.tileSize) / 2);
+    cfg.boardOffsetY = Math.floor((canvas.height - cfg.rows * cfg.tileSize) / 2);
+    cfg.snapDistance = Math.max(10, Math.floor(cfg.tileSize * 0.22));
+  }
+
+  function setTime(sec) {
+    elTime.textContent = `${pad2(Math.floor(sec / 60))}:${pad2(sec % 60)}`;
+  }
+
+  function setCounts() {
     elTotal.textContent = state.tiles.length;
     elPlaced.textContent = state.totalTilesInCorrectPosition;
   }
 
   function generateBasePattern(w, h) {
-    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
     const g = c.getContext('2d');
-    const grad = g.createLinearGradient(0,0,w,h);
-    grad.addColorStop(0, '#3a73ff'); grad.addColorStop(0.45, '#51d2e8'); grad.addColorStop(1, '#ffd166');
-    g.fillStyle = grad; g.fillRect(0,0,w,h);
-    for(let i=0;i<10;i++){
-      g.fillStyle = `hsla(${i*36},80%,55%,0.35)`;
+    const grad = g.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, '#2d63ff');
+    grad.addColorStop(0.45, '#4de0f2');
+    grad.addColorStop(1, '#ffd166');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 16; i++) {
+      g.fillStyle = `hsla(${(i * 27) % 360}, 80%, 55%, 0.28)`;
       g.beginPath();
-      g.arc((i*73)%w, (i*97)%h, 34 + (i%3)*12, 0, Math.PI*2); g.fill();
+      g.arc((i * 71) % w, (i * 97) % h, 16 + (i % 4) * 11, 0, Math.PI * 2);
+      g.fill();
     }
-    g.fillStyle = 'rgba(255,255,255,0.18)';
-    g.font = 'bold 72px sans-serif';
-    g.fillText('JIGSAW', 28, h/2 + 20);
+    g.strokeStyle = 'rgba(255,255,255,0.22)';
+    g.lineWidth = 3;
+    g.strokeRect(6, 6, w - 12, h - 12);
+    g.fillStyle = 'rgba(255,255,255,0.23)';
+    g.font = `bold ${Math.max(42, Math.floor(h * 0.2))}px sans-serif`;
+    g.fillText('JIGSAW', 20, Math.floor(h * 0.55));
     return c;
   }
 
-  const boardW = cfg.cols * cfg.tileSize;
-  const boardH = cfg.rows * cfg.tileSize;
-  const sourceImage = generateBasePattern(boardW, boardH);
+  function buildPiecePath(edges) {
+    const s = cfg.tileSize;
+    const t = cfg.tabSize;
+    const p = new Path2D();
 
-  // ----- Tile topology: POS / NEG / NONE with neighbor complement -----
-  const POS = 1, NEG = -1, NONE = 0;
-  function randomPosNeg(){ return Math.random() < 0.5 ? POS : NEG; }
+    p.moveTo(0, 0);
 
-  function makeTile(ix, iy, edges){
+    // top edge: (0,0) -> (s,0)
+    if (edges.up === NONE) {
+      p.lineTo(s, 0);
+    } else {
+      p.lineTo(s * 0.3, 0);
+      p.bezierCurveTo(s * 0.4, 0, s * 0.4, -edges.up * t, s * 0.5, -edges.up * t);
+      p.bezierCurveTo(s * 0.6, -edges.up * t, s * 0.6, 0, s * 0.7, 0);
+      p.lineTo(s, 0);
+    }
+
+    // right edge: (s,0) -> (s,s)
+    if (edges.right === NONE) {
+      p.lineTo(s, s);
+    } else {
+      p.lineTo(s, s * 0.3);
+      p.bezierCurveTo(s, s * 0.4, s + edges.right * t, s * 0.4, s + edges.right * t, s * 0.5);
+      p.bezierCurveTo(s + edges.right * t, s * 0.6, s, s * 0.6, s, s * 0.7);
+      p.lineTo(s, s);
+    }
+
+    // bottom edge: (s,s) -> (0,s)
+    if (edges.down === NONE) {
+      p.lineTo(0, s);
+    } else {
+      p.lineTo(s * 0.7, s);
+      p.bezierCurveTo(s * 0.6, s, s * 0.6, s + edges.down * t, s * 0.5, s + edges.down * t);
+      p.bezierCurveTo(s * 0.4, s + edges.down * t, s * 0.4, s, s * 0.3, s);
+      p.lineTo(0, s);
+    }
+
+    // left edge: (0,s) -> (0,0)
+    if (edges.left === NONE) {
+      p.lineTo(0, 0);
+    } else {
+      p.lineTo(0, s * 0.7);
+      p.bezierCurveTo(0, s * 0.6, -edges.left * t, s * 0.6, -edges.left * t, s * 0.5);
+      p.bezierCurveTo(-edges.left * t, s * 0.4, 0, s * 0.4, 0, s * 0.3);
+      p.lineTo(0, 0);
+    }
+
+    p.closePath();
+    return p;
+  }
+
+  function makeTile(ix, iy, edges) {
     const correctX = cfg.boardOffsetX + ix * cfg.tileSize;
     const correctY = cfg.boardOffsetY + iy * cfg.tileSize;
     return {
-      ix, iy,
-      edges,                 // {up,right,down,left}
+      ix,
+      iy,
+      edges,
       x: correctX,
       y: correctY,
       correctX,
       correctY,
       inPlace: false,
       z: 0,
+      path: buildPiecePath(edges),
     };
   }
 
   function createTiles() {
     const grid = [];
-    for(let x=0;x<cfg.cols;x++){
+    for (let x = 0; x < cfg.cols; x++) {
       grid[x] = [];
-      for(let y=0;y<cfg.rows;y++){
+      for (let y = 0; y < cfg.rows; y++) {
         const edges = { up: NONE, right: NONE, down: NONE, left: NONE };
-        // left: complement of left neighbor's right
-        if(x === 0) edges.left = NONE;
-        else edges.left = -grid[x-1][y].edges.right;
-
-        // down: complement of down neighbor's up
-        if(y === 0) edges.down = NONE;
-        else edges.down = -grid[x][y-1].edges.up;
-
-        // right + up: random unless border
-        edges.right = (x === cfg.cols - 1) ? NONE : randomPosNeg();
-        edges.up = (y === cfg.rows - 1) ? NONE : randomPosNeg();
-
+        edges.left = x === 0 ? NONE : -grid[x - 1][y].edges.right;
+        edges.down = y === 0 ? NONE : -grid[x][y - 1].edges.up;
+        edges.right = x === cfg.cols - 1 ? NONE : randomPosNeg();
+        edges.up = y === cfg.rows - 1 ? NONE : randomPosNeg();
         grid[x][y] = makeTile(x, y, edges);
       }
     }
 
     state.tiles = [];
-    for(let x=0;x<cfg.cols;x++) for(let y=0;y<cfg.rows;y++) state.tiles.push(grid[x][y]);
+    for (let x = 0; x < cfg.cols; x++) {
+      for (let y = 0; y < cfg.rows; y++) {
+        state.tiles.push(grid[x][y]);
+      }
+    }
     bringAllToTop();
+    state.totalTilesInCorrectPosition = 0;
     setCounts();
   }
 
-  function bringToTop(tile){ tile.z = Date.now() + Math.random(); }
-  function bringAllToTop(){ state.tiles.forEach(bringToTop); }
+  function bringToTop(tile) {
+    tile.z = performance.now() + Math.random();
+  }
+  function bringAllToTop() {
+    state.tiles.forEach(bringToTop);
+  }
 
-  // ----- Drawing: ghost board + pieces -----
   function drawGhost() {
-    if(!state.showGhost) return;
+    if (!state.showGhost || !state.sourceImage) return;
+    const boardW = cfg.cols * cfg.tileSize;
+    const boardH = cfg.rows * cfg.tileSize;
     ctx.save();
     ctx.globalAlpha = cfg.ghostAlpha;
-    ctx.drawImage(sourceImage, cfg.boardOffsetX, cfg.boardOffsetY);
+    ctx.drawImage(state.sourceImage, cfg.boardOffsetX, cfg.boardOffsetY, boardW, boardH);
     ctx.restore();
-    ctx.strokeStyle = 'rgba(255,255,255,.17)';
-    for(let x=0;x<=cfg.cols;x++){
-      const xx = cfg.boardOffsetX + x*cfg.tileSize;
-      ctx.beginPath(); ctx.moveTo(xx, cfg.boardOffsetY); ctx.lineTo(xx, cfg.boardOffsetY + boardH); ctx.stroke();
-    }
-    for(let y=0;y<=cfg.rows;y++){
-      const yy = cfg.boardOffsetY + y*cfg.tileSize;
-      ctx.beginPath(); ctx.moveTo(cfg.boardOffsetX, yy); ctx.lineTo(cfg.boardOffsetX + boardW, yy); ctx.stroke();
-    }
   }
 
-  function drawTile(t){
-    const sx = t.ix * cfg.tileSize;
-    const sy = t.iy * cfg.tileSize;
+  function drawTile(t) {
+    const s = cfg.tileSize;
+    const tab = cfg.tabSize;
 
+    // Piece shadow
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,.38)';
-    ctx.shadowBlur = 10;
+    ctx.translate(t.x, t.y);
+    ctx.shadowColor = 'rgba(0,0,0,.4)';
+    ctx.shadowBlur = 8;
     ctx.shadowOffsetY = 3;
-    ctx.drawImage(sourceImage, sx, sy, cfg.tileSize, cfg.tileSize, t.x, t.y, cfg.tileSize, cfg.tileSize);
+    ctx.fillStyle = 'rgba(0,0,0,0.001)';
+    ctx.fill(t.path);
     ctx.restore();
 
-    // small edge-code mark for POS/NEG/NONE visualization
-    ctx.fillStyle = 'rgba(0,0,0,.45)';
-    ctx.fillRect(t.x+2, t.y+2, 32, 16);
-    ctx.fillStyle = '#c7daf8';
-    ctx.font = '10px monospace';
-    const map = v => v === 1 ? '+' : v === -1 ? '-' : '0';
-    ctx.fillText(`${map(t.edges.up)}${map(t.edges.right)}${map(t.edges.down)}${map(t.edges.left)}`, t.x+5, t.y+13);
+    // Piece texture clipped by irregular path
+    ctx.save();
+    ctx.translate(t.x, t.y);
+    ctx.clip(t.path);
 
-    if(t.inPlace){
-      ctx.strokeStyle = 'rgba(72,220,129,.95)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(t.x+1, t.y+1, cfg.tileSize-2, cfg.tileSize-2);
-    }
+    const sx = t.ix * s - tab;
+    const sy = t.iy * s - tab;
+    const sw = s + tab * 2;
+    const sh = s + tab * 2;
+    ctx.drawImage(state.sourceImage, sx, sy, sw, sh, -tab, -tab, sw, sh);
+
+    ctx.restore();
+
+    // Stroke shape
+    ctx.save();
+    ctx.translate(t.x, t.y);
+    ctx.lineWidth = 1.4;
+    ctx.strokeStyle = t.inPlace ? 'rgba(89,230,138,.95)' : 'rgba(230,240,255,.65)';
+    ctx.stroke(t.path);
+    ctx.restore();
   }
 
-  function render(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawGhost();
-
-    const sorted = [...state.tiles].sort((a,b)=>a.z-b.z);
+    const sorted = [...state.tiles].sort((a, b) => a.z - b.z);
     sorted.forEach(drawTile);
-
     requestAnimationFrame(render);
   }
 
-  // ----- Shuffle / timer / completion -----
-  function shuffleTiles(){
-    const leftRegion = {xMin: 12, xMax: 70, yMin: 70, yMax: 540};
-    const rightRegion = {xMin: 700, xMax: 760, yMin: 70, yMax: 540};
+  function startTimer() {
+    clearInterval(state.timerId);
+    state.secondsSinceStart = 0;
+    setTime(0);
+    state.timerId = setInterval(() => {
+      state.secondsSinceStart += 1;
+      setTime(state.secondsSinceStart);
+    }, 1000);
+  }
+
+  function stopTimer() {
+    clearInterval(state.timerId);
+    state.timerId = null;
+  }
+
+  function checkComplete() {
+    if (state.totalTilesInCorrectPosition === state.tiles.length) {
+      state.tileMovementEnabled = false;
+      stopTimer();
+      elDone.style.display = 'block';
+    }
+  }
+
+  function shuffleTiles() {
+    const leftRegion = { xMin: 12, xMax: 100, yMin: 30, yMax: canvas.height - 100 };
+    const rightRegion = { xMin: canvas.width - 100, xMax: canvas.width - 20, yMin: 30, yMax: canvas.height - 100 };
 
     state.tiles.forEach((t, i) => {
       t.inPlace = false;
-      const r = (i % 2 === 0) ? leftRegion : rightRegion;
+      const r = i % 2 === 0 ? leftRegion : rightRegion;
       t.x = r.xMin + Math.random() * (r.xMax - r.xMin);
       t.y = r.yMin + Math.random() * (r.yMax - r.yMin);
       bringToTop(t);
@@ -281,28 +355,7 @@
     startTimer();
   }
 
-  function startTimer(){
-    clearInterval(state.timerId);
-    state.secondsSinceStart = 0;
-    setTime(0);
-    state.timerId = setInterval(() => {
-      state.secondsSinceStart += 1;
-      setTime(state.secondsSinceStart);
-    }, 1000);
-  }
-
-  function stopTimer(){ clearInterval(state.timerId); state.timerId = null; }
-
-  function checkComplete(){
-    if(state.totalTilesInCorrectPosition === state.tiles.length){
-      state.tileMovementEnabled = false;
-      stopTimer();
-      elDone.style.display = 'block';
-    }
-  }
-
-  // ----- Drag and snap -----
-  function canvasPoint(e){
+  function canvasPoint(e) {
     const r = canvas.getBoundingClientRect();
     return {
       x: (e.clientX - r.left) * (canvas.width / r.width),
@@ -310,67 +363,86 @@
     };
   }
 
-  function pickTopTile(px, py){
-    const sorted = [...state.tiles].sort((a,b)=>b.z-a.z);
-    return sorted.find(t =>
-      !t.inPlace &&
-      px >= t.x && px <= t.x + cfg.tileSize &&
-      py >= t.y && py <= t.y + cfg.tileSize);
+  function pointInTile(tile, px, py) {
+    const lx = px - tile.x;
+    const ly = py - tile.y;
+    return ctx.isPointInPath(tile.path, lx, ly);
+  }
+
+  function pickTopTile(px, py) {
+    const sorted = [...state.tiles].sort((a, b) => b.z - a.z);
+    return sorted.find((t) => !t.inPlace && pointInTile(t, px, py));
   }
 
   canvas.addEventListener('pointerdown', (e) => {
-    if(!state.tileMovementEnabled) return;
+    if (!state.tileMovementEnabled) return;
     const p = canvasPoint(e);
-    const t = pickTopTile(p.x, p.y);
-    if(!t) return;
-    bringToTop(t);
-    state.drag = { tile: t, offX: p.x - t.x, offY: p.y - t.y };
+    const tile = pickTopTile(p.x, p.y);
+    if (!tile) return;
+    bringToTop(tile);
+    state.drag = { tile, offX: p.x - tile.x, offY: p.y - tile.y };
   });
 
   canvas.addEventListener('pointermove', (e) => {
-    if(!state.tileMovementEnabled || !state.drag) return;
+    if (!state.tileMovementEnabled || !state.drag) return;
     const p = canvasPoint(e);
     const t = state.drag.tile;
     t.x = p.x - state.drag.offX;
     t.y = p.y - state.drag.offY;
   });
 
-  function onDrop(){
-    if(!state.drag) return;
+  function onDrop() {
+    if (!state.drag) return;
     const t = state.drag.tile;
-    const dx = t.x - t.correctX;
-    const dy = t.y - t.correctY;
-    const dist = Math.hypot(dx, dy);
-    if(dist < cfg.snapDistance){
+    const dist = Math.hypot(t.x - t.correctX, t.y - t.correctY);
+    if (dist < cfg.snapDistance) {
       t.x = t.correctX;
       t.y = t.correctY;
-      t.inPlace = true;
-      state.totalTilesInCorrectPosition += 1;
-      setCounts();
-      checkComplete();
+      if (!t.inPlace) {
+        t.inPlace = true;
+        state.totalTilesInCorrectPosition += 1;
+        setCounts();
+        checkComplete();
+      }
     }
     state.drag = null;
   }
+
   canvas.addEventListener('pointerup', onDrop);
   canvas.addEventListener('pointerleave', onDrop);
 
-  document.getElementById('play').addEventListener('click', shuffleTiles);
-  document.getElementById('toggleGhost').addEventListener('click', () => state.showGhost = !state.showGhost);
-  document.getElementById('reset').addEventListener('click', () => {
+  function rebuildBySelection() {
     stopTimer();
-    state.secondsSinceStart = 0;
-    state.totalTilesInCorrectPosition = 0;
-    setTime(0);
-    createTiles();
-    state.tiles.forEach(t => { t.x = t.correctX; t.y = t.correctY; t.inPlace = false; });
     state.tileMovementEnabled = false;
+    state.secondsSinceStart = 0;
+    setTime(0);
     elDone.style.display = 'none';
-  });
 
-  // init
-  createTiles();
-  state.tiles.forEach(t => { t.x = t.correctX; t.y = t.correctY; });
-  setTime(0);
+    cfg.cols = Number(elCols.value);
+    cfg.rows = Number(elRows.value);
+    updateTileSize();
+
+    const boardW = cfg.cols * cfg.tileSize;
+    const boardH = cfg.rows * cfg.tileSize;
+    state.sourceImage = generateBasePattern(boardW, boardH);
+
+    createTiles();
+    state.tiles.forEach((t) => {
+      t.x = t.correctX;
+      t.y = t.correctY;
+      t.inPlace = false;
+    });
+    setCounts();
+  }
+
+  document.getElementById('applyPieces').addEventListener('click', rebuildBySelection);
+  document.getElementById('play').addEventListener('click', shuffleTiles);
+  document.getElementById('toggleGhost').addEventListener('click', () => {
+    state.showGhost = !state.showGhost;
+  });
+  document.getElementById('reset').addEventListener('click', rebuildBySelection);
+
+  rebuildBySelection();
   render();
 })();
 </script>

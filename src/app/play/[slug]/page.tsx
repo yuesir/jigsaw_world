@@ -388,8 +388,11 @@ function PlayPuzzleContent() {
 
   const startGame = () => {
     setIsPlaying(true)
-    setTimer(0)
-    setMoves(0)
+    // Only reset timer and moves if it's the first time starting (timer is 0)
+    // Otherwise, continue from where we paused
+    if (timer === 0) {
+      setMoves(0)
+    }
   }
 
   const pauseGame = () => {
@@ -516,46 +519,86 @@ function PlayPuzzleContent() {
     // Get all pieces in the dragged group
     const groupPieces = draggedGroupData.pieces.map(id => newPieces.find(p => p.id === id)).filter(Boolean) as PuzzlePiece[]
 
-    // Check each piece in the group for connections and correct placement
-    groupPieces.forEach(piece => {
-      const position = getPieceOrGroupPosition(piece.id)
+    // Helper function to calculate actual piece position based on group
+    const getActualPiecePosition = (piece: PuzzlePiece, group: PuzzleGroup | undefined) => {
+      if (!group || !group.pieces || group.pieces.length === 0) {
+        return { x: piece.x, y: piece.y }
+      }
 
-      // Check if piece is near its correct position
-      if (!piece.isPlaced &&
-          Math.abs(position.x - piece.correctX) < SNAP_DISTANCE &&
-          Math.abs(position.y - piece.correctY) < SNAP_DISTANCE) {
+      const firstPiece = newPieces.find(p => p.id === group.pieces[0])
+      if (!firstPiece) return { x: piece.x, y: piece.y }
 
-        // Snap entire group to align this piece correctly
-        const groupIndex = newGroups.findIndex(g => g.id === draggedGroup)
-        if (groupIndex !== -1) {
-          const offsetAdjustmentX = piece.correctX - position.x
-          const offsetAdjustmentY = piece.correctY - position.y
+      const relativeCol = piece.col - firstPiece.col
+      const relativeRow = piece.row - firstPiece.row
+      return {
+        x: group.offsetX + relativeCol * piece.width,
+        y: group.offsetY + relativeRow * piece.height
+      }
+    }
 
-          newGroups[groupIndex] = {
-            ...newGroups[groupIndex],
-            offsetX: newGroups[groupIndex].offsetX + offsetAdjustmentX,
-            offsetY: newGroups[groupIndex].offsetY + offsetAdjustmentY
-          }
+    // First, check if any piece in the group needs snapping to correct position
+    let needsSnapping = false
+    let snapPiece: PuzzlePiece | null = null
 
-          // Mark all pieces in correct position as placed
-          draggedGroupData.pieces.forEach(pId => {
-            const p = newPieces.find(pc => pc.id === pId)
-            if (p) {
-              const pPos = getPieceOrGroupPosition(p.id)
-              if (Math.abs(pPos.x + offsetAdjustmentX - p.correctX) < 5 &&
-                  Math.abs(pPos.y + offsetAdjustmentY - p.correctY) < 5) {
-                const pIndex = newPieces.findIndex(pc => pc.id === pId)
-                if (pIndex !== -1) {
-                  newPieces[pIndex] = { ...newPieces[pIndex], isPlaced: true }
-                  updated = true
-                }
-              }
-            }
-          })
+    const groupIndex = newGroups.findIndex(g => g.id === draggedGroup)
+    const currentGroup = groupIndex !== -1 ? newGroups[groupIndex] : undefined
+
+    if (currentGroup) {
+      for (const piece of groupPieces) {
+        const actualPos = getActualPiecePosition(piece, currentGroup)
+        if (Math.abs(actualPos.x - piece.correctX) < SNAP_DISTANCE &&
+            Math.abs(actualPos.y - piece.correctY) < SNAP_DISTANCE &&
+            (Math.abs(actualPos.x - piece.correctX) > 1 || Math.abs(actualPos.y - piece.correctY) > 1)) {
+          needsSnapping = true
+          snapPiece = piece
+          break
         }
       }
 
-      // Check for connections with adjacent pieces
+      // Snap the group if needed
+      if (needsSnapping && snapPiece) {
+        const actualPos = getActualPiecePosition(snapPiece, currentGroup)
+        const offsetAdjustmentX = snapPiece.correctX - actualPos.x
+        const offsetAdjustmentY = snapPiece.correctY - actualPos.y
+
+        newGroups[groupIndex] = {
+          ...newGroups[groupIndex],
+          offsetX: newGroups[groupIndex].offsetX + offsetAdjustmentX,
+          offsetY: newGroups[groupIndex].offsetY + offsetAdjustmentY
+        }
+        updated = true
+      }
+
+      // Now mark all pieces that are in correct position (using updated group position)
+      draggedGroupData.pieces.forEach(pId => {
+        const p = newPieces.find(pc => pc.id === pId)
+        if (p) {
+          const actualPos = getActualPiecePosition(p, newGroups[groupIndex])
+
+          // Check if piece is in correct position (within tolerance)
+          if (Math.abs(actualPos.x - p.correctX) < 5 && Math.abs(actualPos.y - p.correctY) < 5) {
+            const pIndex = newPieces.findIndex(pc => pc.id === pId)
+            if (pIndex !== -1 && !newPieces[pIndex].isPlaced) {
+              newPieces[pIndex] = { ...newPieces[pIndex], isPlaced: true }
+              updated = true
+              console.log(`Piece ${pId} marked as placed`)
+            }
+          }
+        }
+      })
+    }
+
+    // Check for connections with adjacent pieces
+    if (!currentGroup) {
+      // Group doesn't exist, skip connection checking
+      if (updated) {
+        setPieces(newPieces)
+        setGroups(newGroups)
+      }
+      return
+    }
+
+    groupPieces.forEach(piece => {
       const adjacentPositions = [
         { row: piece.row - 1, col: piece.col, dx: 0, dy: -piece.height }, // Top
         { row: piece.row + 1, col: piece.col, dx: 0, dy: piece.height },  // Bottom
@@ -569,8 +612,20 @@ function PlayPuzzleContent() {
         const adjacentPiece = newPieces.find(p => p.row === row && p.col === col)
         if (!adjacentPiece || adjacentPiece.groupId === piece.groupId) return
 
-        const adjacentPos = getPieceOrGroupPosition(adjacentPiece.id)
-        const currentPos = getPieceOrGroupPosition(piece.id)
+        // Use the local helper function for consistent position calculation
+        const currentPos = getActualPiecePosition(piece, currentGroup)
+
+        let adjacentPos: { x: number, y: number }
+        if (adjacentPiece.groupId) {
+          const adjGroup = newGroups.find(g => g.id === adjacentPiece.groupId)
+          if (adjGroup) {
+            adjacentPos = getActualPiecePosition(adjacentPiece, adjGroup)
+          } else {
+            return
+          }
+        } else {
+          adjacentPos = { x: adjacentPiece.x, y: adjacentPiece.y }
+        }
 
         const actualDx = adjacentPos.x - currentPos.x
         const actualDy = adjacentPos.y - currentPos.y
@@ -592,22 +647,36 @@ function PlayPuzzleContent() {
               if (draggedGroupIndex !== -1) {
                 newGroups[draggedGroupIndex].offsetX -= snapOffsetX
                 newGroups[draggedGroupIndex].offsetY -= snapOffsetY
-              }
 
-              // Add all pieces from adjacent group to dragged group
-              adjacentGroup.pieces.forEach(apId => {
-                const apIndex = newPieces.findIndex(p => p.id === apId)
-                if (apIndex !== -1) {
-                  newPieces[apIndex] = { ...newPieces[apIndex], groupId: draggedGroup }
-                }
-              })
+                // Add all pieces from adjacent group to dragged group
+                const allNewPieces = [...newGroups[draggedGroupIndex].pieces, ...adjacentGroup.pieces]
 
-              // Update dragged group with new pieces
-              if (draggedGroupIndex !== -1) {
-                newGroups[draggedGroupIndex].pieces = [
-                  ...newGroups[draggedGroupIndex].pieces,
-                  ...adjacentGroup.pieces
-                ]
+                // Update pieces to point to dragged group
+                adjacentGroup.pieces.forEach(apId => {
+                  const apIndex = newPieces.findIndex(p => p.id === apId)
+                  if (apIndex !== -1) {
+                    newPieces[apIndex] = { ...newPieces[apIndex], groupId: draggedGroup }
+                  }
+                })
+
+                // Update dragged group with new pieces
+                newGroups[draggedGroupIndex].pieces = allNewPieces
+
+                // After merging, immediately check if pieces are in correct positions
+                const mergedGroup = newGroups[draggedGroupIndex]
+                allNewPieces.forEach(pId => {
+                  const p = newPieces.find(pc => pc.id === pId)
+                  if (p) {
+                    const actualPos = getActualPiecePosition(p, mergedGroup)
+                    if (Math.abs(actualPos.x - p.correctX) < 5 && Math.abs(actualPos.y - p.correctY) < 5) {
+                      const pIndex = newPieces.findIndex(pc => pc.id === pId)
+                      if (pIndex !== -1 && !newPieces[pIndex].isPlaced) {
+                        newPieces[pIndex] = { ...newPieces[pIndex], isPlaced: true }
+                        console.log(`Piece ${pId} marked as placed (after merge)`)
+                      }
+                    }
+                  }
+                })
               }
 
               // Remove the adjacent group
@@ -632,12 +701,22 @@ function PlayPuzzleContent() {
               newGroups[draggedGroupIndex].offsetX -= snapOffsetX
               newGroups[draggedGroupIndex].offsetY -= snapOffsetY
               newGroups[draggedGroupIndex].pieces.push(adjacentPiece.id)
-            }
 
-            // Add piece to group
-            const apIndex = newPieces.findIndex(p => p.id === adjacentPiece.id)
-            if (apIndex !== -1) {
-              newPieces[apIndex] = { ...newPieces[apIndex], groupId: draggedGroup }
+              // Add piece to group
+              const apIndex = newPieces.findIndex(p => p.id === adjacentPiece.id)
+              if (apIndex !== -1) {
+                newPieces[apIndex] = { ...newPieces[apIndex], groupId: draggedGroup }
+              }
+
+              // Check if the newly added piece is in correct position
+              const mergedGroup = newGroups[draggedGroupIndex]
+              const actualPos = getActualPiecePosition(adjacentPiece, mergedGroup)
+              if (Math.abs(actualPos.x - adjacentPiece.correctX) < 5 && Math.abs(actualPos.y - adjacentPiece.correctY) < 5) {
+                if (apIndex !== -1 && !newPieces[apIndex].isPlaced) {
+                  newPieces[apIndex] = { ...newPieces[apIndex], isPlaced: true }
+                  console.log(`Piece ${adjacentPiece.id} marked as placed (after adding to group)`)
+                }
+              }
             }
             updated = true
           }
@@ -655,8 +734,72 @@ function PlayPuzzleContent() {
       const newProgress = Math.round((placedCount / newPieces.length) * 100)
       setProgress(newProgress)
 
+      // Additional check: if all pieces are in one group, verify if puzzle is complete
+      if (newGroups.length === 1 && newGroups[0].pieces.length === newPieces.length) {
+        console.log('All pieces in one group, checking if complete...')
+
+        // Since we already marked pieces as placed when they snapped to correct positions,
+        // we can simply check if all pieces are placed
+        const allPlacedCount = newPieces.filter(p => p.isPlaced).length
+
+        if (allPlacedCount === newPieces.length) {
+          console.log('All pieces in correct position!')
+          setIsCompleted(true)
+          setIsPlaying(false)
+          setProgress(100)
+
+          if (!isMuted) {
+            const audio = new Audio('/sounds/complete.mp3')
+            audio.volume = 0.5
+            audio.play().catch(() => {})
+          }
+          return
+        } else {
+          // If not all pieces are marked as placed, let's double-check their positions
+          let allCorrect = true
+          const singleGroup = newGroups[0]
+          const firstPieceId = singleGroup.pieces[0]
+          const firstPiece = newPieces.find(p => p.id === firstPieceId)
+
+          if (firstPiece) {
+            newPieces.forEach(piece => {
+              const relativeCol = piece.col - firstPiece.col
+              const relativeRow = piece.row - firstPiece.row
+              const pieceX = singleGroup.offsetX + relativeCol * piece.width
+              const pieceY = singleGroup.offsetY + relativeRow * piece.height
+
+              if (Math.abs(pieceX - piece.correctX) > 5 || Math.abs(pieceY - piece.correctY) > 5) {
+                allCorrect = false
+                console.log(`Piece ${piece.id} not in correct position: ${pieceX},${pieceY} vs ${piece.correctX},${piece.correctY}`)
+              }
+            })
+
+            if (allCorrect) {
+              console.log('All pieces actually in correct position after double-check!')
+              // Mark all pieces as placed and complete the puzzle
+              newPieces = newPieces.map(p => ({ ...p, isPlaced: true }))
+              setPieces(newPieces)
+              setIsCompleted(true)
+              setIsPlaying(false)
+              setProgress(100)
+
+              if (!isMuted) {
+                const audio = new Audio('/sounds/complete.mp3')
+                audio.volume = 0.5
+                audio.play().catch(() => {})
+              }
+              return
+            } else {
+              console.log('Not all pieces in correct position yet')
+            }
+          }
+        }
+      }
+
       // Check for completion
-      if (placedCount === newPieces.length) {
+      console.log('Checking completion:', placedCount, 'of', newPieces.length, 'pieces placed')
+      if (placedCount === newPieces.length && newPieces.length > 0) {
+        console.log('Puzzle completed!')
         setIsCompleted(true)
         setIsPlaying(false)
 
@@ -667,7 +810,7 @@ function PlayPuzzleContent() {
         }
       }
     }
-  }, [draggedGroup, groups, pieces, puzzle, isMuted, getPieceOrGroupPosition])
+  }, [draggedGroup, groups, pieces, puzzle, isMuted])
 
   const handleMouseUp = useCallback(() => {
     if (!draggedGroup || !isPlaying) return
@@ -763,7 +906,7 @@ function PlayPuzzleContent() {
         className={cn(
           "absolute cursor-grab select-none",
           isDragging && "cursor-grabbing",
-          piece.isPlaced && !showEdgeOnly && "pointer-events-none"
+          isCompleted && "pointer-events-none"  // Only disable dragging when puzzle is complete
         )}
         style={{
           left: `${position.x - tabExtension}px`,
@@ -850,14 +993,14 @@ function PlayPuzzleContent() {
           <path
             d={piece.path}
             fill="none"
-            stroke={piece.isPlaced ? '#22c55e' : isDragging ? '#3b82f6' : '#94a3b8'}
-            strokeWidth={piece.isPlaced ? 2 : 1}
+            stroke={isCompleted && piece.isPlaced ? '#22c55e' : isDragging ? '#3b82f6' : '#94a3b8'}
+            strokeWidth={isCompleted && piece.isPlaced ? 2 : 1}
             strokeLinejoin="round"
             opacity={showEdgeOnly ? 1 : 0.5}
           />
 
-          {/* Success indicator */}
-          {piece.isPlaced && !showEdgeOnly && (
+          {/* Success indicator - only show when puzzle is complete */}
+          {piece.isPlaced && isCompleted && !showEdgeOnly && (
             <g transform={`translate(${piece.width / 2}, ${piece.height / 2})`}>
               <circle r="15" fill="rgba(34, 197, 94, 0.9)" />
               <path
@@ -924,16 +1067,41 @@ function PlayPuzzleContent() {
               <span className="text-xl font-mono font-bold text-foreground">{formatTime(timer)}</span>
             </div>
 
-            {/* Progress */}
-            <div className="hidden sm:flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">Progress</span>
-              <div className="w-32 bg-secondary dark:bg-secondary/50 rounded-full h-2.5 overflow-hidden">
-                <div
-                  className="bg-primary h-full rounded-full transition-all duration-500 progress-bar"
-                  style={{ width: `${progress}%` }}
-                />
+            {/* Progress - Circular */}
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="relative w-12 h-12">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 44 44">
+                  {/* Background circle */}
+                  <circle
+                    cx="22"
+                    cy="22"
+                    r="18"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    className="text-secondary dark:text-secondary/50"
+                  />
+                  {/* Progress circle */}
+                  <circle
+                    cx="22"
+                    cy="22"
+                    r="18"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    className="text-primary transition-all duration-500"
+                    style={{
+                      strokeDasharray: `${2 * Math.PI * 18}`,
+                      strokeDashoffset: `${2 * Math.PI * 18 * (1 - progress / 100)}`
+                    }}
+                  />
+                </svg>
+                {/* Progress text */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xs font-bold text-foreground">{progress}</span>
+                </div>
               </div>
-              <span className="text-sm font-semibold text-foreground w-10">{progress}%</span>
             </div>
 
             {/* Control buttons */}
@@ -995,17 +1163,40 @@ function PlayPuzzleContent() {
           </div>
         </div>
 
-        {/* Mobile Progress */}
-        <div className="sm:hidden mt-3">
-          <div className="flex items-center justify-between text-sm mb-1">
-            <span className="text-muted-foreground">Progress</span>
-            <span className="font-semibold text-foreground">{progress}%</span>
-          </div>
-          <div className="w-full bg-secondary dark:bg-secondary/50 rounded-full h-2 overflow-hidden">
-            <div
-              className="bg-primary h-full rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
+        {/* Mobile Progress - Circular */}
+        <div className="sm:hidden mt-3 flex items-center justify-center">
+          <div className="relative w-10 h-10">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 44 44">
+              {/* Background circle */}
+              <circle
+                cx="22"
+                cy="22"
+                r="18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="4"
+                className="text-secondary dark:text-secondary/50"
+              />
+              {/* Progress circle */}
+              <circle
+                cx="22"
+                cy="22"
+                r="18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="4"
+                strokeLinecap="round"
+                className="text-primary transition-all duration-500"
+                style={{
+                  strokeDasharray: `${2 * Math.PI * 18}`,
+                  strokeDashoffset: `${2 * Math.PI * 18 * (1 - progress / 100)}`
+                }}
+              />
+            </svg>
+            {/* Progress text */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-[10px] font-bold text-foreground">{progress}</span>
+            </div>
           </div>
         </div>
       </header>
@@ -1013,11 +1204,11 @@ function PlayPuzzleContent() {
       {/* Game Area */}
       <div className="flex-1 p-4 sm:p-6 overflow-hidden">
         <div className="max-w-7xl mx-auto h-full">
-          <div className="flex gap-6 h-full">
+          <div className="flex gap-6">
             {/* Main Game Board */}
             <div
               ref={gameAreaRef}
-              className="relative flex-1 bg-card dark:bg-card/80 rounded-2xl shadow-lg overflow-hidden select-none"
+              className="relative flex-1 h-[calc(100vh-180px)] min-h-[500px] bg-card dark:bg-card/80 rounded-2xl shadow-lg overflow-hidden select-none"
               style={{ cursor: draggedGroup ? 'grabbing' : 'auto' }}
             >
               {/* Preview Image */}
@@ -1155,7 +1346,7 @@ function PlayPuzzleContent() {
             </div>
 
             {/* Sidebar */}
-            <div className="hidden xl:block w-64 space-y-4">
+            <div className="hidden xl:block w-64 space-y-4 self-start">
               {/* Preview thumbnail */}
               <Card className="border-0 shadow-lg overflow-hidden dark:bg-card dark:border dark:border-white/10">
                 <div className="relative aspect-[4/3]">
@@ -1172,22 +1363,6 @@ function PlayPuzzleContent() {
                     </Button>
                   </div>
                 </div>
-              </Card>
-
-              {/* Tips */}
-              <Card className="border-0 shadow-lg dark:bg-card dark:border dark:border-white/10">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center">
-                    <Star className="w-4 h-4 mr-2" />
-                    Pro Tips
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-xs text-muted-foreground">
-                  <p>• Start with edge pieces</p>
-                  <p>• Look for unique colors or patterns</p>
-                  <p>• Use ghost image for reference</p>
-                  <p>• Toggle edge mode to focus on shapes</p>
-                </CardContent>
               </Card>
             </div>
           </div>
