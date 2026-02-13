@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jigsaw Puzzle - JS Version</title>
+  <style>
+    :root {
+      --bg: #10131a;
+      --card: #1a2230;
+      --muted: #9db1cc;
+      --accent: #4ea1ff;
+      --ok: #3dc46b;
+    }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #182233, var(--bg));
+      color: #eaf1ff;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+    }
+    .app {
+      width: min(1100px, 95vw);
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 14px;
+    }
+    .board-wrap {
+      background: #0f1726;
+      border: 1px solid #2a3a56;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      max-width: 780px;
+      background: #0b1322;
+      border-radius: 8px;
+      border: 1px solid #283650;
+      cursor: grab;
+    }
+    canvas:active { cursor: grabbing; }
+    .panel {
+      background: var(--card);
+      border: 1px solid #2d3c57;
+      border-radius: 12px;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+    .row { display: flex; justify-content: space-between; color: var(--muted); }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #2a3854;
+      color: #e8f0ff;
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); color: #081120; font-weight: 700; }
+    button.ok { background: var(--ok); color: #052010; font-weight: 700; }
+    .hint { font-size: 12px; color: #b7c6de; opacity: .9; line-height: 1.4; }
+    .done {
+      display: none;
+      margin-top: 8px;
+      background: #102a1d;
+      border: 1px solid #1e6c43;
+      color: #b9f5d2;
+      border-radius: 8px;
+      padding: 10px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="board-wrap">
+      <canvas id="board" width="780" height="620"></canvas>
+    </div>
+    <aside class="panel">
+      <button id="play" class="primary">开始洗牌</button>
+      <button id="toggleGhost">显示/隐藏原图</button>
+      <button id="reset" class="ok">重新开始</button>
+
+      <div class="row"><span>时间</span><strong id="time">00:00</strong></div>
+      <div class="row"><span>总块数</span><strong id="total">0</strong></div>
+      <div class="row"><span>已归位</span><strong id="placed">0</strong></div>
+
+      <div id="done" class="done">🎉 拼图完成！</div>
+
+      <div class="hint">
+        核心逻辑：<br />
+        1) 边缘类型 POS/NEG/NONE；2) 邻块边缘互补；3) 拖拽 + 吸附；4) 计时与胜利判定。
+      </div>
+    </aside>
+  </div>
+
+<script>
+(() => {
+  const cfg = {
+    tileSize: 80,
+    cols: 6,
+    rows: 4,
+    boardOffsetX: 140,
+    boardOffsetY: 150,
+    snapDistance: 18,
+    ghostAlpha: 0.18,
+  };
+
+  const state = {
+    tileMovementEnabled: false,
+    secondsSinceStart: 0,
+    totalTilesInCorrectPosition: 0,
+    showGhost: true,
+    timerId: null,
+    tiles: [],
+    drag: null,
+  };
+
+  const canvas = document.getElementById('board');
+  const ctx = canvas.getContext('2d');
+  const elTime = document.getElementById('time');
+  const elTotal = document.getElementById('total');
+  const elPlaced = document.getElementById('placed');
+  const elDone = document.getElementById('done');
+
+  function pad2(n){ return String(n).padStart(2, '0'); }
+  function setTime(sec){ elTime.textContent = `${pad2(Math.floor(sec/60))}:${pad2(sec%60)}`; }
+  function setCounts(){
+    elTotal.textContent = state.tiles.length;
+    elPlaced.textContent = state.totalTilesInCorrectPosition;
+  }
+
+  function generateBasePattern(w, h) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    const grad = g.createLinearGradient(0,0,w,h);
+    grad.addColorStop(0, '#3a73ff'); grad.addColorStop(0.45, '#51d2e8'); grad.addColorStop(1, '#ffd166');
+    g.fillStyle = grad; g.fillRect(0,0,w,h);
+    for(let i=0;i<10;i++){
+      g.fillStyle = `hsla(${i*36},80%,55%,0.35)`;
+      g.beginPath();
+      g.arc((i*73)%w, (i*97)%h, 34 + (i%3)*12, 0, Math.PI*2); g.fill();
+    }
+    g.fillStyle = 'rgba(255,255,255,0.18)';
+    g.font = 'bold 72px sans-serif';
+    g.fillText('JIGSAW', 28, h/2 + 20);
+    return c;
+  }
+
+  const boardW = cfg.cols * cfg.tileSize;
+  const boardH = cfg.rows * cfg.tileSize;
+  const sourceImage = generateBasePattern(boardW, boardH);
+
+  // ----- Tile topology: POS / NEG / NONE with neighbor complement -----
+  const POS = 1, NEG = -1, NONE = 0;
+  function randomPosNeg(){ return Math.random() < 0.5 ? POS : NEG; }
+
+  function makeTile(ix, iy, edges){
+    const correctX = cfg.boardOffsetX + ix * cfg.tileSize;
+    const correctY = cfg.boardOffsetY + iy * cfg.tileSize;
+    return {
+      ix, iy,
+      edges,                 // {up,right,down,left}
+      x: correctX,
+      y: correctY,
+      correctX,
+      correctY,
+      inPlace: false,
+      z: 0,
+    };
+  }
+
+  function createTiles() {
+    const grid = [];
+    for(let x=0;x<cfg.cols;x++){
+      grid[x] = [];
+      for(let y=0;y<cfg.rows;y++){
+        const edges = { up: NONE, right: NONE, down: NONE, left: NONE };
+        // left: complement of left neighbor's right
+        if(x === 0) edges.left = NONE;
+        else edges.left = -grid[x-1][y].edges.right;
+
+        // down: complement of down neighbor's up
+        if(y === 0) edges.down = NONE;
+        else edges.down = -grid[x][y-1].edges.up;
+
+        // right + up: random unless border
+        edges.right = (x === cfg.cols - 1) ? NONE : randomPosNeg();
+        edges.up = (y === cfg.rows - 1) ? NONE : randomPosNeg();
+
+        grid[x][y] = makeTile(x, y, edges);
+      }
+    }
+
+    state.tiles = [];
+    for(let x=0;x<cfg.cols;x++) for(let y=0;y<cfg.rows;y++) state.tiles.push(grid[x][y]);
+    bringAllToTop();
+    setCounts();
+  }
+
+  function bringToTop(tile){ tile.z = Date.now() + Math.random(); }
+  function bringAllToTop(){ state.tiles.forEach(bringToTop); }
+
+  // ----- Drawing: ghost board + pieces -----
+  function drawGhost() {
+    if(!state.showGhost) return;
+    ctx.save();
+    ctx.globalAlpha = cfg.ghostAlpha;
+    ctx.drawImage(sourceImage, cfg.boardOffsetX, cfg.boardOffsetY);
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255,255,255,.17)';
+    for(let x=0;x<=cfg.cols;x++){
+      const xx = cfg.boardOffsetX + x*cfg.tileSize;
+      ctx.beginPath(); ctx.moveTo(xx, cfg.boardOffsetY); ctx.lineTo(xx, cfg.boardOffsetY + boardH); ctx.stroke();
+    }
+    for(let y=0;y<=cfg.rows;y++){
+      const yy = cfg.boardOffsetY + y*cfg.tileSize;
+      ctx.beginPath(); ctx.moveTo(cfg.boardOffsetX, yy); ctx.lineTo(cfg.boardOffsetX + boardW, yy); ctx.stroke();
+    }
+  }
+
+  function drawTile(t){
+    const sx = t.ix * cfg.tileSize;
+    const sy = t.iy * cfg.tileSize;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.38)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 3;
+    ctx.drawImage(sourceImage, sx, sy, cfg.tileSize, cfg.tileSize, t.x, t.y, cfg.tileSize, cfg.tileSize);
+    ctx.restore();
+
+    // small edge-code mark for POS/NEG/NONE visualization
+    ctx.fillStyle = 'rgba(0,0,0,.45)';
+    ctx.fillRect(t.x+2, t.y+2, 32, 16);
+    ctx.fillStyle = '#c7daf8';
+    ctx.font = '10px monospace';
+    const map = v => v === 1 ? '+' : v === -1 ? '-' : '0';
+    ctx.fillText(`${map(t.edges.up)}${map(t.edges.right)}${map(t.edges.down)}${map(t.edges.left)}`, t.x+5, t.y+13);
+
+    if(t.inPlace){
+      ctx.strokeStyle = 'rgba(72,220,129,.95)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(t.x+1, t.y+1, cfg.tileSize-2, cfg.tileSize-2);
+    }
+  }
+
+  function render(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawGhost();
+
+    const sorted = [...state.tiles].sort((a,b)=>a.z-b.z);
+    sorted.forEach(drawTile);
+
+    requestAnimationFrame(render);
+  }
+
+  // ----- Shuffle / timer / completion -----
+  function shuffleTiles(){
+    const leftRegion = {xMin: 12, xMax: 70, yMin: 70, yMax: 540};
+    const rightRegion = {xMin: 700, xMax: 760, yMin: 70, yMax: 540};
+
+    state.tiles.forEach((t, i) => {
+      t.inPlace = false;
+      const r = (i % 2 === 0) ? leftRegion : rightRegion;
+      t.x = r.xMin + Math.random() * (r.xMax - r.xMin);
+      t.y = r.yMin + Math.random() * (r.yMax - r.yMin);
+      bringToTop(t);
+    });
+
+    state.totalTilesInCorrectPosition = 0;
+    setCounts();
+    elDone.style.display = 'none';
+    state.tileMovementEnabled = true;
+    startTimer();
+  }
+
+  function startTimer(){
+    clearInterval(state.timerId);
+    state.secondsSinceStart = 0;
+    setTime(0);
+    state.timerId = setInterval(() => {
+      state.secondsSinceStart += 1;
+      setTime(state.secondsSinceStart);
+    }, 1000);
+  }
+
+  function stopTimer(){ clearInterval(state.timerId); state.timerId = null; }
+
+  function checkComplete(){
+    if(state.totalTilesInCorrectPosition === state.tiles.length){
+      state.tileMovementEnabled = false;
+      stopTimer();
+      elDone.style.display = 'block';
+    }
+  }
+
+  // ----- Drag and snap -----
+  function canvasPoint(e){
+    const r = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - r.left) * (canvas.width / r.width),
+      y: (e.clientY - r.top) * (canvas.height / r.height),
+    };
+  }
+
+  function pickTopTile(px, py){
+    const sorted = [...state.tiles].sort((a,b)=>b.z-a.z);
+    return sorted.find(t =>
+      !t.inPlace &&
+      px >= t.x && px <= t.x + cfg.tileSize &&
+      py >= t.y && py <= t.y + cfg.tileSize);
+  }
+
+  canvas.addEventListener('pointerdown', (e) => {
+    if(!state.tileMovementEnabled) return;
+    const p = canvasPoint(e);
+    const t = pickTopTile(p.x, p.y);
+    if(!t) return;
+    bringToTop(t);
+    state.drag = { tile: t, offX: p.x - t.x, offY: p.y - t.y };
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if(!state.tileMovementEnabled || !state.drag) return;
+    const p = canvasPoint(e);
+    const t = state.drag.tile;
+    t.x = p.x - state.drag.offX;
+    t.y = p.y - state.drag.offY;
+  });
+
+  function onDrop(){
+    if(!state.drag) return;
+    const t = state.drag.tile;
+    const dx = t.x - t.correctX;
+    const dy = t.y - t.correctY;
+    const dist = Math.hypot(dx, dy);
+    if(dist < cfg.snapDistance){
+      t.x = t.correctX;
+      t.y = t.correctY;
+      t.inPlace = true;
+      state.totalTilesInCorrectPosition += 1;
+      setCounts();
+      checkComplete();
+    }
+    state.drag = null;
+  }
+  canvas.addEventListener('pointerup', onDrop);
+  canvas.addEventListener('pointerleave', onDrop);
+
+  document.getElementById('play').addEventListener('click', shuffleTiles);
+  document.getElementById('toggleGhost').addEventListener('click', () => state.showGhost = !state.showGhost);
+  document.getElementById('reset').addEventListener('click', () => {
+    stopTimer();
+    state.secondsSinceStart = 0;
+    state.totalTilesInCorrectPosition = 0;
+    setTime(0);
+    createTiles();
+    state.tiles.forEach(t => { t.x = t.correctX; t.y = t.correctY; t.inPlace = false; });
+    state.tileMovementEnabled = false;
+    elDone.style.display = 'none';
+  });
+
+  // init
+  createTiles();
+  state.tiles.forEach(t => { t.x = t.correctX; t.y = t.correctY; });
+  setTime(0);
+  render();
+})();
+</script>
+</body>
+</html>

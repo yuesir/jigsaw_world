@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修复版 Jigsaw Puzzle</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c3e50;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 10px; }
+        .controls {
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        canvas {
+            background-color: #222; /* 深色背景方便看清拼图边缘 */
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border-radius: 4px;
+            cursor: grab;
+        }
+        canvas:active { cursor: grabbing; }
+        button {
+            padding: 8px 16px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background-color: #2ecc71; }
+        select, input { padding: 5px; border-radius: 4px; border: none; }
+    </style>
+</head>
+<body>
+
+    <h1>Canvas Jigsaw Puzzle (修复版)</h1>
+    <p>修复问题：图片显示不全、边缘缺失。现在拼图块基于矩形完整生成。</p>
+
+    <div class="controls">
+        <label>
+            难度:
+            <select id="difficulty">
+                <option value="3">3 x 3 (简单)</option>
+                <option value="4" selected>4 x 4 (中等)</option>
+                <option value="6">6 x 6 (困难)</option>
+            </select>
+        </label>
+        <label>
+            上传图片:
+            <input type="file" id="imageUpload" accept="image/*">
+        </label>
+        <button onclick="puzzleGame.restart()">重置游戏</button>
+        <button onclick="puzzleGame.shuffle()">打乱拼图</button>
+        <button onclick="puzzleGame.solve()">一键还原</button>
+    </div>
+
+    <canvas id="puzzleCanvas"></canvas>
+
+<script>
+class JigsawGame {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        
+        this.cols = 4;
+        this.rows = 4;
+        this.pieceWidth = 0;
+        this.pieceHeight = 0;
+        this.pieces = [];
+        this.img = new Image();
+        this.isLoaded = false;
+        
+        // 交互状态
+        this.selectedPiece = null;
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.snapDistance = 20;
+
+        // 绑定事件
+        this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
+        this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+        window.addEventListener('mouseup', this.onMouseUp.bind(this));
+        
+        // 默认图片
+        this.img.onload = () => {
+            this.isLoaded = true;
+            this.restart();
+        };
+        // 使用一张稳定的测试图
+        this.img.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
+    }
+
+    restart() {
+        if (!this.isLoaded) return;
+
+        const difficulty = document.getElementById('difficulty').value;
+        this.cols = parseInt(difficulty);
+        this.rows = parseInt(difficulty);
+
+        const maxWidth = 800;
+        const scale = Math.min(1, maxWidth / this.img.width);
+        this.canvas.width = this.img.width * scale;
+        this.canvas.height = this.img.height * scale;
+
+        this.pieceWidth = this.canvas.width / this.cols;
+        this.pieceHeight = this.canvas.height / this.rows;
+
+        this.generatePieces();
+        this.shuffle();
+        this.draw();
+    }
+
+    generatePieces() {
+        this.pieces = [];
+        // 1=凸 (Out), -1=凹 (In), 0=平
+        const xEdges = Array(this.cols + 1).fill(0).map(() => Array(this.rows).fill(0));
+        const yEdges = Array(this.cols).fill(0).map(() => Array(this.rows + 1).fill(0));
+
+        // 生成内部随机边缘
+        for (let i = 0; i < this.cols; i++) {
+            for (let j = 0; j < this.rows; j++) {
+                if (i < this.cols - 1) xEdges[i + 1][j] = Math.random() > 0.5 ? 1 : -1;
+                if (j < this.rows - 1) yEdges[i][j + 1] = Math.random() > 0.5 ? 1 : -1;
+            }
+        }
+
+        for (let i = 0; i < this.cols; i++) {
+            for (let j = 0; j < this.rows; j++) {
+                const piece = {
+                    col: i,
+                    row: j,
+                    correctX: i * this.pieceWidth,
+                    correctY: j * this.pieceHeight,
+                    currentX: 0, 
+                    currentY: 0,
+                    // 形状: [上, 右, 下, 左]
+                    // 左边形状必须是左侧拼图右边形状的“互补”
+                    // 如果左侧拼图向右凸(1)，则当前拼图左边必须向内凹(1，代表形状上的In)
+                    // 为了简化绘图逻辑，我们统一约定：1代表向“外”凸，-1代表向“内”凹
+                    // 所以如果左邻居是 1(向右凸)，那我就是 -1(向内凹)。
+                    // 这里的 xEdges 存储的是“边界形态”，我们需要转译给 Piece
+                    shapes: [
+                        yEdges[i][j],              // Top
+                        xEdges[i + 1][j],          // Right
+                        yEdges[i][j + 1],          // Bottom (注意这里不取负，绘图时再处理方向)
+                        xEdges[i][j]               // Left
+                    ],
+                    isLocked: false
+                };
+                this.pieces.push(piece);
+            }
+        }
+    }
+
+    shuffle() {
+        this.pieces.forEach(p => {
+            if (!p.isLocked) {
+                // 限制在画布内
+                p.currentX = Math.random() * (this.canvas.width - this.pieceWidth);
+                p.currentY = Math.random() * (this.canvas.height - this.pieceHeight);
+            }
+        });
+        this.draw();
+    }
+
+    solve() {
+        this.pieces.forEach(p => {
+            p.currentX = p.correctX;
+            p.currentY = p.correctY;
+            p.isLocked = true;
+        });
+        this.draw();
+    }
+
+    /**
+     * 核心修复：更稳健的路径绘制
+     * 确保总是画完完整的四条边和四个角
+     */
+    drawPiecePath(ctx, width, height, shapes) {
+        const [top, right, bottom, left] = shapes;
+        // 计算凸起的大小，大约是短边的 20%
+        const tabSize = Math.min(width, height) * 0.2; 
+        const neck = tabSize * 0.8; // 凸起底部的宽度
+
+        ctx.beginPath();
+        
+        // 1. 上边：从 (0,0) 到 (W,0)
+        ctx.moveTo(0, 0);
+        if (top !== 0) {
+            // top=1(凸) -> s=-1 (Canvas坐标系Y向下，向上凸即Y减小)
+            // top=-1(凹) -> s=1
+            const s = top === 1 ? -1 : 1; 
+            const cx = width / 2;
+            ctx.lineTo(cx - neck, 0);
+            ctx.bezierCurveTo(cx - neck, s * tabSize, cx + neck, s * tabSize, cx + neck, 0);
+        }
+        ctx.lineTo(width, 0); // 确保到达右上角
+
+        // 2. 右边：从 (W,0) 到 (W,H)
+        if (right !== 0) {
+            const s = right === 1 ? 1 : -1; // 1=凸(向右X变大), -1=凹
+            const cy = height / 2;
+            ctx.lineTo(width, cy - neck);
+            ctx.bezierCurveTo(width + s * tabSize, cy - neck, width + s * tabSize, cy + neck, width, cy + neck);
+        }
+        ctx.lineTo(width, height); // 确保到达右下角
+
+        // 3. 下边：从 (W,H) 到 (0,H)
+        if (bottom !== 0) {
+            // bottom=1(凸，向下Y变大) -> s=1
+            // bottom=-1(凹) -> s=-1
+            const s = bottom === 1 ? 1 : -1;
+            const cx = width / 2;
+            ctx.lineTo(cx + neck, height);
+            ctx.bezierCurveTo(cx + neck, height + s * tabSize, cx - neck, height + s * tabSize, cx - neck, height);
+        }
+        ctx.lineTo(0, height); // 确保到达左下角
+
+        // 4. 左边：从 (0,H) 到 (0,0)
+        if (left !== 0) {
+            // left=1(凸，向左X变小) -> s=-1
+            // left=-1(凹，向右X变大) -> s=1
+            // 注意：generatePieces里我们传下来的是“边界属性”。
+            // 如果 xEdges[i][j] 是 1 (该边界向右凸)，那么对于右边的块(当前块)来说，左边应该是凹的。
+            // 让我们在 draw 里面修正这个逻辑，或者在 generate 里修正。
+            // 这里假设：shapes里的值已经代表了“对于当前块来说，是凸还是凹”。
+            // 凸 = 1 (向外), 凹 = -1 (向内)。
+            // 左边向外凸 = X变负。
+            const s = left === 1 ? -1 : 1;
+            const cy = height / 2;
+            ctx.lineTo(0, cy + neck);
+            ctx.bezierCurveTo(s * tabSize, cy + neck, s * tabSize, cy - neck, 0, cy - neck);
+        }
+        ctx.lineTo(0, 0); // 闭合回左上角
+
+        ctx.closePath();
+    }
+
+    draw() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 计算 Tab 尺寸用于扩大绘制区域
+        const tabSize = Math.min(this.pieceWidth, this.pieceHeight) * 0.2;
+
+        // 排序：选中的最后画（在最上层）
+        const renderList = [...this.pieces].sort((a, b) => {
+            if (a === this.selectedPiece) return 1;
+            if (b === this.selectedPiece) return -1;
+            return 0;
+        });
+
+        renderList.forEach(p => {
+            this.ctx.save();
+            this.ctx.translate(p.currentX, p.currentY);
+
+            // 1. 定义形状路径
+            // 重新解析 shape 逻辑以匹配 drawPiecePath 的期望
+            // Top: yEdges[c][r]. 1=下凸(对于上一行), 对于当前行是凹? 
+            // 让我们统一逻辑：generatePieces 产生的是“绝对边界形状” (1=右/下凸)。
+            // 转换成“相对形状” (1=Out/凸, -1=In/凹)：
+            // Top:    如果 yEdges[i][j]=1 (上一行向下凸), 我是 -1 (凹)。
+            // Right:  如果 xEdges[i+1][j]=1 (我向右凸), 我是 1 (凸)。
+            // Bottom: 如果 yEdges[i][j+1]=1 (我向下凸), 我是 1 (凸)。
+            // Left:   如果 xEdges[i][j]=1 (左一行向右凸), 我是 -1 (凹)。
+            
+            const renderShapes = [
+                -p.shapes[0], // Top: 上边界是上一块的下底，形状取反
+                p.shapes[1],  // Right: 保持
+                p.shapes[2],  // Bottom: 保持
+                -p.shapes[3]  // Left: 左边界是左一块的右边，形状取反
+            ];
+
+            this.drawPiecePath(this.ctx, this.pieceWidth, this.pieceHeight, renderShapes);
+
+            // 2. 裁剪
+            this.ctx.clip();
+
+            // 3. 绘制图片
+            // 核心修复：为了让凸出来的部分(Tab)也有图像，我们需要扩大源图像的采样范围
+            // 并扩大目标绘制范围。
+            // 比例计算
+            const imgScaleX = this.canvas.width / this.img.width;
+            const imgScaleY = this.canvas.height / this.img.height;
+
+            // 源图像上的坐标 (SrcX, SrcY)
+            // 需要往左/上多取一点图，以覆盖凸出的耳朵
+            const srcX = (p.correctX - tabSize) / imgScaleX;
+            const srcY = (p.correctY - tabSize) / imgScaleY;
+            const srcW = (this.pieceWidth + tabSize * 2) / imgScaleX;
+            const srcH = (this.pieceHeight + tabSize * 2) / imgScaleY;
+
+            // 画布上的坐标 (DestX, DestY)
+            // 对应地，画在当前坐标系的负偏移处
+            this.ctx.drawImage(
+                this.img,
+                srcX, srcY, srcW, srcH,       // 源图截取
+                -tabSize, -tabSize,           // 目标位置 (相对于 currentX, currentY)
+                this.pieceWidth + tabSize * 2, // 目标宽
+                this.pieceHeight + tabSize * 2 // 目标高
+            );
+
+            // 4. 描边
+            this.ctx.stroke();
+            this.ctx.restore();
+        });
+    }
+
+    onMouseDown(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        for (let i = this.pieces.length - 1; i >= 0; i--) {
+            const p = this.pieces[i];
+            if (p.isLocked) continue;
+
+            // 简单的点击检测 (矩形范围)
+            if (mouseX >= p.currentX && mouseX <= p.currentX + this.pieceWidth &&
+                mouseY >= p.currentY && mouseY <= p.currentY + this.pieceHeight) {
+                
+                this.selectedPiece = p;
+                this.offsetX = mouseX - p.currentX;
+                this.offsetY = mouseY - p.currentY;
+                
+                // 提至顶层
+                this.pieces.splice(i, 1);
+                this.pieces.push(p);
+                this.draw();
+                break;
+            }
+        }
+    }
+
+    onMouseMove(e) {
+        if (!this.selectedPiece) return;
+        const rect = this.canvas.getBoundingClientRect();
+        this.selectedPiece.currentX = e.clientX - rect.left - this.offsetX;
+        this.selectedPiece.currentY = e.clientY - rect.top - this.offsetY;
+        this.draw();
+    }
+
+    onMouseUp() {
+        if (!this.selectedPiece) return;
+        const p = this.selectedPiece;
+        const dist = Math.sqrt(Math.pow(p.currentX - p.correctX, 2) + Math.pow(p.currentY - p.correctY, 2));
+
+        if (dist < this.snapDistance) {
+            p.currentX = p.correctX;
+            p.currentY = p.correctY;
+            p.isLocked = true;
+            if (this.pieces.every(piece => piece.isLocked)) {
+                setTimeout(() => alert("恭喜！拼图完成！"), 100);
+            }
+        }
+        this.selectedPiece = null;
+        this.draw();
+    }
+}
+
+const puzzleGame = new JigsawGame('puzzleCanvas');
+
+document.getElementById('imageUpload').addEventListener('change', function(e) {
+    if (e.target.files && e.target.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                puzzleGame.img = img;
+                puzzleGame.restart();
+            }
+            img.src = event.target.result;
+        }
+        reader.readAsDataURL(e.target.files[0]);
+    }
+});
+
+document.getElementById('difficulty').addEventListener('change', function() {
+    puzzleGame.restart();
+});
+</script>
+</body>
+</html>
