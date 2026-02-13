@@ -484,8 +484,8 @@ function PlayPuzzleContent() {
       const newGroup = {
         id: newGroupId,
         pieces: [pieceId],
-        offsetX: piece.x,
-        offsetY: piece.y
+        offsetX: position.x,  // Use the calculated position, not piece.x
+        offsetY: position.y   // Use the calculated position, not piece.y
       }
       setGroups(prev => [...prev, newGroup])
       setDraggedGroup(newGroupId)
@@ -859,7 +859,20 @@ function PlayPuzzleContent() {
   const renderPuzzlePiece = (piece: PuzzlePiece) => {
     const position = getPieceOrGroupPosition(piece.id)
     const isDragging = groups.find(g => g.id === draggedGroup)?.pieces.includes(piece.id)
-    const zIndex = isDragging ? 1000 : piece.isPlaced ? 1 : groups.findIndex(g => g.id === piece.groupId) + 10
+
+    // Calculate z-index: dragging pieces on top, then by group order, placed pieces at bottom
+    let zIndex: number
+    if (isDragging) {
+      zIndex = 1000
+    } else if (piece.isPlaced) {
+      zIndex = 1
+    } else if (piece.groupId) {
+      // Find group index - groups later in array have higher z-index
+      const groupIndex = groups.findIndex(g => g.id === piece.groupId)
+      zIndex = groupIndex !== -1 ? 100 + groupIndex : 50
+    } else {
+      zIndex = 50  // Single pieces not in groups
+    }
 
     const tabExtension = Math.min(piece.width, piece.height) * TAB_SIZE_RATIO
 
@@ -903,9 +916,9 @@ function PlayPuzzleContent() {
     return (
       <div
         key={piece.id}
+        data-piece-id={piece.id}
         className={cn(
-          "absolute cursor-grab select-none",
-          isDragging && "cursor-grabbing",
+          "absolute select-none",
           isCompleted && "pointer-events-none"  // Only disable dragging when puzzle is complete
         )}
         style={{
@@ -917,16 +930,20 @@ function PlayPuzzleContent() {
           transform: isDragging ? 'scale(1.02)' : 'scale(1)',
           transition: isDragging ? 'none' : 'transform 0.2s',
           filter: isDragging ? 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))' :
-                  piece.isPlaced ? 'none' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+                  piece.isPlaced ? 'none' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
+          isolation: 'isolate',  // Create new stacking context to ensure proper layering
+          pointerEvents: 'none'  // Disable pointer events on the container
         }}
-        onMouseDown={(e) => handleMouseDown(piece.id, e)}
       >
         <svg
           width={piece.width + tabExtension * 2}
           height={piece.height + tabExtension * 2}
           viewBox={`${-tabExtension} ${-tabExtension} ${piece.width + tabExtension * 2} ${piece.height + tabExtension * 2}`}
           className="absolute inset-0"
-          style={{ overflow: 'visible' }}
+          style={{
+            overflow: 'visible',
+            pointerEvents: 'none'  // Disable pointer events on the SVG itself
+          }}
         >
           <defs>
             {/* Define the clipping mask for both fill and image */}
@@ -1013,6 +1030,23 @@ function PlayPuzzleContent() {
               />
             </g>
           )}
+
+          {/* Invisible clickable area that matches piece shape exactly */}
+          <path
+            d={piece.path}
+            fill="transparent"
+            stroke="none"
+            style={{
+              pointerEvents: 'fill',  // Enable pointer events only on the filled area
+              cursor: isDragging ? 'grabbing' : 'grab'
+            }}
+            onMouseDown={(e) => {
+              // This ensures only clicks on the actual piece shape are registered
+              e.stopPropagation()
+              e.preventDefault()
+              handleMouseDown(piece.id, e as any)
+            }}
+          />
         </svg>
       </div>
     )
@@ -1259,8 +1293,27 @@ function PlayPuzzleContent() {
                 )}
               </div>
 
-              {/* Puzzle Pieces */}
-              {pieces.map((piece) => renderPuzzlePiece(piece))}
+              {/* Puzzle Pieces - sorted by z-index in REVERSE order (highest first) for proper mouse event handling */}
+              {pieces
+                .map(piece => {
+                  let zIndex: number
+                  const isDragging = groups.find(g => g.id === draggedGroup)?.pieces.includes(piece.id)
+
+                  if (isDragging) {
+                    zIndex = 1000
+                  } else if (piece.isPlaced) {
+                    zIndex = 1
+                  } else if (piece.groupId) {
+                    const groupIndex = groups.findIndex(g => g.id === piece.groupId)
+                    zIndex = groupIndex !== -1 ? 100 + groupIndex : 50
+                  } else {
+                    zIndex = 50
+                  }
+
+                  return { piece, zIndex }
+                })
+                .sort((a, b) => b.zIndex - a.zIndex)  // REVERSE sort - highest z-index first
+                .map(({ piece }) => renderPuzzlePiece(piece))}
 
               {/* Start Overlay */}
               {!isPlaying && !isCompleted && progress === 0 && (
