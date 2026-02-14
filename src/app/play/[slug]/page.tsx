@@ -189,7 +189,6 @@ function PlayPuzzleContent() {
   // Constants for puzzle mechanics
   const SNAP_DISTANCE = 25 // Reduced for more precise snapping
   const TAB_SIZE_RATIO = 0.2 // Tab size relative to piece size
-  const BOARD_PADDING = 60
 
   // Load puzzle data
   useEffect(() => {
@@ -244,18 +243,16 @@ function PlayPuzzleContent() {
   // Initialize puzzle pieces with irregular shapes
   useEffect(() => {
     if (puzzle && boardRef.current) {
-      const boardRect = boardRef.current.getBoundingClientRect()
-      const availableWidth = boardRect.width - BOARD_PADDING * 2
-      const availableHeight = boardRect.height - BOARD_PADDING * 2
+      // Use fixed image dimensions - all Unsplash images are 800x600
+      const imageWidth = 800
+      const imageHeight = 600
 
-      // Calculate piece dimensions to fit the board
-      const baseWidth = Math.floor(availableWidth / puzzle.cols)
-      const baseHeight = Math.floor(availableHeight / puzzle.rows)
+      // Calculate piece dimensions based on image size
+      const pieceWidth = Math.floor(imageWidth / puzzle.cols)
+      const pieceHeight = Math.floor(imageHeight / puzzle.rows)
 
       // Add extra space for tabs
-      const tabExtension = Math.min(baseWidth, baseHeight) * TAB_SIZE_RATIO
-      const pieceWidth = baseWidth
-      const pieceHeight = baseHeight
+      const tabExtension = Math.min(pieceWidth, pieceHeight) * TAB_SIZE_RATIO
 
       setBoardDimensions({
         width: pieceWidth * puzzle.cols,
@@ -598,11 +595,13 @@ function PlayPuzzleContent() {
     setShowGhostImage(false)
     setShowEdgeOnly(false)
     if (puzzle && boardRef.current && gameAreaRef.current) {
-      const boardRect = boardRef.current.getBoundingClientRect()
-      const availableWidth = boardRect.width - BOARD_PADDING * 2
-      const availableHeight = boardRect.height - BOARD_PADDING * 2
-      const pieceWidth = Math.floor(availableWidth / puzzle.cols)
-      const pieceHeight = Math.floor(availableHeight / puzzle.rows)
+      // Use fixed image dimensions - all Unsplash images are 800x600
+      const imageWidth = 800
+      const imageHeight = 600
+
+      // Calculate piece dimensions based on image size
+      const pieceWidth = Math.floor(imageWidth / puzzle.cols)
+      const pieceHeight = Math.floor(imageHeight / puzzle.rows)
       const tabExtension = Math.min(pieceWidth, pieceHeight) * TAB_SIZE_RATIO
       initializePuzzle(puzzle, pieceWidth, pieceHeight, tabExtension)
     }
