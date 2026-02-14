@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼图碎片螺旋布局 - 原始算法</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Space+Mono:wght@400;700&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-dark: #1a1d29;
+            --bg-light: #242938;
+            --accent-blue: #4a9eff;
+            --accent-purple: #b084ff;
+            --accent-green: #4ade80;
+            --text-primary: #e8eaed;
+            --text-secondary: #9ca3af;
+        }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark), #0f1219);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .container { max-width: 1600px; margin: 0 auto; padding: 2rem; }
+        header { text-align: center; margin-bottom: 2rem; }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .controls {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            font-weight: 500;
+            color: var(--accent-blue);
+            min-width: 100px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: #374151;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .value {
+            font-family: 'Space Mono', monospace;
+            color: var(--accent-green);
+            font-weight: 700;
+            min-width: 60px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: transform 0.2s;
+        }
+        
+        button:hover { transform: translateY(-2px); }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat {
+            background: var(--bg-light);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+        
+        .canvas-container {
+            background: var(--bg-light);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        canvas { display: block; width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>拼图碎片螺旋布局</h1>
+            <p class="subtitle">JigsawExplorer 原始算法实现</p>
+        </header>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>碎片数量</label>
+                <input type="range" id="count" min="20" max="1000" value="80" step="10">
+                <span class="value" id="countVal">80</span>
+            </div>
+            <div class="buttons">
+                <button onclick="set(35)">35片</button>
+                <button onclick="set(80)">80片</button>
+                <button onclick="set(150)">150片</button>
+                <button onclick="set(300)">300片</button>
+                <button onclick="set(500)">500片</button>
+                <button onclick="set(1000)">1000片</button>
+                <button onclick="generate()">重新生成</button>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-label">总碎片</div>
+                <div class="stat-value" id="total">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">已放置</div>
+                <div class="stat-value" id="placed">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">G（横向剩余）</div>
+                <div class="stat-value" id="g" style="font-size:1rem">0px</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">V（纵向剩余）</div>
+                <div class="stat-value" id="v" style="font-size:1rem">0px</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">N（纵向层数）</div>
+                <div class="stat-value" id="n">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">R（横向层数）</div>
+                <div class="stat-value" id="r">0</div>
+            </div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="canvas" width="1600" height="900"></canvas>
+        </div>
+        
+        <div class="controls" style="margin-top: 1.5rem;">
+            <h3 style="color: var(--accent-purple); margin-bottom: 1rem; font-size: 1rem;">🧩 自适应宽高比算法说明</h3>
+            <div style="color: var(--text-secondary); line-height: 1.6; font-size: 0.9rem;">
+                <p style="margin-bottom: 0.75rem;">
+                    <strong style="color: var(--accent-blue);">核心逻辑：</strong>
+                    算法根据<strong>横向剩余空间(G)</strong>和<strong>纵向剩余空间(V)</strong>的大小关系，自动调整碎片分布。
+                    支持20-1000片碎片（超过300片使用简化绘制以提升性能）。
+                </p>
+                <p style="margin-bottom: 0.75rem;">
+                    <strong style="color: var(--accent-green);">当前配置（横屏）：</strong>
+                    画布1600×900，拼图1000×600 → G=600px, V=300px → G > V<br>
+                    <span style="color: var(--accent-blue);">→ 限制纵向层数N ≈ 7</span>，
+                    <span style="color: var(--accent-green);">→ 横向层数R保持充足</span>
+                </p>
+                <p style="margin-bottom: 0.75rem;">
+                    <strong style="color: var(--accent-purple);">结果：</strong>
+                    向右/左移动需要N>0，转7次后N=0 → <strong style="color: #4ade80;">上下边框薄(1-3层)</strong><br>
+                    向上/下移动需要R>0，R充足 → <strong style="color: #f59e0b;">左右边框厚(6-8层)</strong>
+                </p>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 1rem;">
+                    💡 提示：绿色✓表示符合预期，橙色表示需要调整碎片数量。打开控制台可查看详细日志。<br>
+                    ⚡ 性能：大于300片时自动使用简化绘制模式，1000片布局耗时约1-3秒。
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const CFG = {
+            W: 1600, H: 900,
+            PW: 1000, PH: 600,
+            PieceW: 50, PieceH: 40
+        };
+        
+        class Piece {
+            constructor(id, edge) {
+                this.id = id;
+                this.edge = edge;
+                this.x = 0;
+                this.y = 0;
+            }
+            draw(ctx, simple = false) {
+                ctx.fillStyle = this.edge ? '#4a9eff' : '#f59e0b';
+                ctx.fillRect(this.x, this.y, CFG.PieceW, CFG.PieceH);
+                
+                if (!simple) {
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(this.x, this.y, CFG.PieceW, CFG.PieceH);
+                }
+            }
+        }
+        
+        let mgr = {
+            pieces: [],
+            placed: [],
+            
+            gen(cnt) {
+                this.pieces = [];
+                const ratio = CFG.PW / CFG.PH;
+                const rows = Math.ceil(Math.sqrt(cnt / ratio));
+                const cols = Math.ceil(cnt / rows);
+                
+                for (let i = 0; i < cnt; i++) {
+                    const r = Math.floor(i / cols);
+                    const c = i % cols;
+                    const edge = r === 0 || r === rows - 1 || c === 0 || c === cols - 1;
+                    this.pieces.push(new Piece(i, edge));
+                }
+            },
+            
+            scatter() {
+                const startTime = performance.now();
+                this.placed = [];
+                
+                // 计算参数（严格按原始代码）
+                const n = { width: CFG.W, height: CFG.H };
+                const subj = { width: CFG.PW, height: CFG.PH };
+                
+                const p = CFG.PieceW * 1.05;
+                const g = CFG.PieceH * 1.05;
+                const l = p / 4;
+                const c = g / 4;
+                const u = p / 8;
+                const d = g / 8;
+                
+                const useBorder = this.pieces.length >= 35;
+                let w = useBorder ? (n.width - l) / p : n.width / p;
+                let P = useBorder ? (n.height - c) / g : n.height / g;
+                let S = p * (w / Math.floor(w));
+                let C = g * (P / Math.floor(P));
+                
+                const T = S / 2;
+                const z = C / 2;
+                
+                let I = p / 2 + (useBorder ? u : 0);
+                let L = g / 2 + (useBorder ? d : 0);
+                let O = n.width - (useBorder ? u : 0);
+                let A = C + (useBorder ? d : 0);
+                let M = n.height - (useBorder ? d : 0);
+                let b = useBorder ? u : 0;
+                
+                let N = 999;
+                let R = 999;
+                
+                const G = n.width - subj.width;
+                const V = n.height - subj.height;
+                
+                // 关键判断
+                if (G < V) {
+                    R = Math.floor(G / S);
+                } else {
+                    N = Math.floor(V / C);
+                }
+                
+                const initN = N;
+                const initR = R;
+                
+                let j = 3;  // 方向
+                const B = [];  // 碰撞检测
+                const m = [...this.pieces];  // 队列
+                const W = m.length;
+                let U = 0;
+                
+                const pL = (n.width - subj.width) / 2;
+                const pR = pL + subj.width;
+                const pT = (n.height - subj.height) / 2;
+                const pB = pT + subj.height;
+                
+                console.log('=== 自适应宽高比布局 ===');
+                console.log(`画布尺寸: ${n.width}×${n.height}`);
+                console.log(`拼图尺寸: ${subj.width}×${subj.height}`);
+                console.log(`碎片总数: ${W}片 ${W > 500 ? '⚠️ 大数量，使用简化绘制' : ''}`);
+                console.log(`横向剩余空间 G = ${G}px`);
+                console.log(`纵向剩余空间 V = ${V}px`);
+                console.log(`G ${G < V ? '<' : '>'} V → ${G < V ? '竖屏模式（限制R）' : '横屏模式（限制N）'}`);
+                console.log(`初始 N = ${N === 999 ? '充足' : N} (纵向层数，控制能向右/左转几次)`);
+                console.log(`初始 R = ${R === 999 ? '充足' : R} (横向层数，控制能向上/下转几次)`);
+                console.log(`预期结果: ${G < V ? '上下边框厚，左右边框薄' : '上下边框薄，左右边框厚'}`);
+                console.log('========================');
+                
+                // 主循环
+                const logInterval = W > 500 ? 100 : (W > 200 ? 50 : 20);
+                let logCount = 0;
+                
+                while (m.length > 0) {
+                    const t = m.pop();
+                    
+                    // 碰撞检测
+                    let Y = false;
+                    for (const r of B) {
+                        if (Math.abs(I - r.x) < CFG.PieceW && Math.abs(L - r.y) < CFG.PieceH) {
+                            Y = true;
+                            break;
+                        }
+                    }
+                    
+                    // 中央区域检测
+                    const tx = I - CFG.PieceW / 2;
+                    const ty = L - CFG.PieceH / 2;
+                    if (!(tx + CFG.PieceW <= pL || tx >= pR || ty + CFG.PieceH <= pT || ty >= pB)) {
+                        Y = true;
+                    }
+                    
+                    // 判断能否放置
+                    const X = !Y && ((j === 3 && N > 0) || (j === 2 && N > 0) || 
+                                    (j === 0 && R > 0) || (j === 1 && R > 0));
+                    
+                    if (X) {
+                        const rnd = () => (Math.random() >= 0.5 ? 1 : -1) * Math.random();
+                        t.x = I + rnd() * p * 0.0625 - CFG.PieceW / 2;
+                        t.y = L + rnd() * g * 0.0625 - CFG.PieceH / 2;
+                        this.placed.push(t);
+                        B.push({ x: I, y: L });
+                        U++;
+                        
+                        if (U % logInterval === 0) {
+                            console.log(`进度: ${U}/${W} (${(U/W*100).toFixed(1)}%)`);
+                        }
+                    } else {
+                        m.push(t);
+                    }
+                    
+                    // 移动
+                    const ee = Y ? T : S;
+                    const te = Y ? z : C;
+                    let f, v;
+                    
+                    switch (j) {
+                        case 3:
+                            f = I + ee;
+                            if (f > O - l) {
+                                j = 1;
+                                N--;
+                                I = O - p / 2;
+                                if (X) L += te;
+                                if (R > 0) O -= S;
+                                if (N % 2 === 0 || N <= 2) console.log(`转向: 右→下, N=${N}, R=${R}`);
+                            } else I = f;
+                            break;
+                        case 1:
+                            v = L + te;
+                            if (v > M - c) {
+                                j = 2;
+                                R--;
+                                L = M - g / 2;
+                                if (X) I -= ee;
+                                if (N > 0) M -= C;
+                                if (R % 5 === 0 || R <= 5) console.log(`转向: 下→左, N=${N}, R=${R}`);
+                            } else L = v;
+                            break;
+                        case 2:
+                            f = I - ee;
+                            if (f < b + l) {
+                                j = 0;
+                                N--;
+                                I = b + p / 2;
+                                if (X) L -= te;
+                                if (R > 0) b += S;
+                                if (N % 2 === 0 || N <= 2) console.log(`转向: 左→上, N=${N}, R=${R}`);
+                            } else I = f;
+                            break;
+                        case 0:
+                            v = L - te;
+                            if (v < A + c) {
+                                j = 3;
+                                R--;
+                                L = A + g / 2;
+                                if (X) I += ee;
+                                if (N > 0) A += C;
+                                if (R % 5 === 0 || R <= 5) console.log(`转向: 上→右, N=${N}, R=${R}`);
+                            } else L = v;
+                            break;
+                    }
+                }
+                
+                console.log(`布局完成: ${U}/${W}, 最终 N=${N}, R=${R}`);
+                
+                // 统计边框
+                const cx = (n.width - subj.width) / 2;
+                const cy = (n.height - subj.height) / 2;
+                const top = this.placed.filter(p => p.y + CFG.PieceH <= cy).length;
+                const bottom = this.placed.filter(p => p.y >= cy + CFG.PH).length;
+                const left = this.placed.filter(p => p.x + CFG.PieceW <= cx).length;
+                const right = this.placed.filter(p => p.x >= cx + CFG.PW).length;
+                
+                const topLayers = Math.ceil(top / (CFG.PW / CFG.PieceW));
+                const bottomLayers = Math.ceil(bottom / (CFG.PW / CFG.PieceW));
+                const leftLayers = Math.ceil(left / (CFG.PH / CFG.PieceH));
+                const rightLayers = Math.ceil(right / (CFG.PH / CFG.PieceH));
+                
+                console.log('=== 边框统计 ===');
+                console.log(`上边框: ${top}片, ${topLayers}层 ${topLayers <= 3 ? '✓(薄)' : '✗(厚)'}`);
+                console.log(`下边框: ${bottom}片, ${bottomLayers}层 ${bottomLayers <= 3 ? '✓(薄)' : '✗(厚)'}`);
+                console.log(`左边框: ${left}片, ${leftLayers}层 ${leftLayers >= 6 ? '✓(厚)' : '✗(薄)'}`);
+                console.log(`右边框: ${right}片, ${rightLayers}层 ${rightLayers >= 6 ? '✓(厚)' : '✗(薄)'}`);
+                console.log('================');
+                
+                const endTime = performance.now();
+                const duration = (endTime - startTime).toFixed(2);
+                console.log(`⏱️ 布局耗时: ${duration}ms`);
+                
+                return { G, V, N: initN, R: initR, placed: U, total: W };
+            },
+            
+            draw() {
+                const ctx = document.getElementById('canvas').getContext('2d');
+                ctx.fillStyle = '#242938';
+                ctx.fillRect(0, 0, CFG.W, CFG.H);
+                
+                // 中央区域
+                const cx = (CFG.W - CFG.PW) / 2;
+                const cy = (CFG.H - CFG.PH) / 2;
+                
+                ctx.strokeStyle = 'rgba(74, 158, 255, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([10, 5]);
+                ctx.strokeRect(cx, cy, CFG.PW, CFG.PH);
+                ctx.setLineDash([]);
+                
+                ctx.fillStyle = '#4a9eff';
+                ctx.font = '14px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('中央拼图区域', CFG.W / 2, cy - 10);
+                ctx.font = '11px monospace';
+                ctx.fillStyle = 'rgba(74, 158, 255, 0.5)';
+                ctx.fillText(`${CFG.PW}×${CFG.PH}`, CFG.W / 2, cy - 25);
+                
+                // 统计各边框的碎片数
+                const top = this.placed.filter(p => p.y + CFG.PieceH <= cy).length;
+                const bottom = this.placed.filter(p => p.y >= cy + CFG.PH).length;
+                const left = this.placed.filter(p => p.x + CFG.PieceW <= cx).length;
+                const right = this.placed.filter(p => p.x >= cx + CFG.PW).length;
+                
+                // 计算层数
+                const topLayers = Math.ceil(top / (CFG.PW / CFG.PieceW));
+                const bottomLayers = Math.ceil(bottom / (CFG.PW / CFG.PieceW));
+                const leftLayers = Math.ceil(left / (CFG.PH / CFG.PieceH));
+                const rightLayers = Math.ceil(right / (CFG.PH / CFG.PieceH));
+                
+                // 绘制边框标注
+                ctx.font = 'bold 13px monospace';
+                ctx.textAlign = 'center';
+                
+                // 上边框
+                ctx.fillStyle = topLayers <= 3 ? '#4ade80' : '#f59e0b';
+                ctx.fillText(`↑ 上: ${top}片 (${topLayers}层)`, CFG.W / 2, 25);
+                
+                // 下边框
+                ctx.fillStyle = bottomLayers <= 3 ? '#4ade80' : '#f59e0b';
+                ctx.fillText(`↓ 下: ${bottom}片 (${bottomLayers}层)`, CFG.W / 2, CFG.H - 10);
+                
+                // 左边框
+                ctx.save();
+                ctx.translate(25, CFG.H / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillStyle = leftLayers >= 6 ? '#4ade80' : '#f59e0b';
+                ctx.fillText(`← 左: ${left}片 (${leftLayers}层)`, 0, 0);
+                ctx.restore();
+                
+                // 右边框
+                ctx.save();
+                ctx.translate(CFG.W - 25, CFG.H / 2);
+                ctx.rotate(Math.PI / 2);
+                ctx.fillStyle = rightLayers >= 6 ? '#4ade80' : '#f59e0b';
+                ctx.fillText(`→ 右: ${right}片 (${rightLayers}层)`, 0, 0);
+                ctx.restore();
+                
+                // 碎片
+                const useSimple = this.pieces.length > 300;
+                for (const p of this.placed) {
+                    p.draw(ctx, useSimple);
+                }
+                
+                // 左上角统计框
+                ctx.fillStyle = 'rgba(26, 29, 41, 0.9)';
+                ctx.fillRect(10, 50, 200, 110);
+                
+                ctx.font = '12px monospace';
+                ctx.textAlign = 'left';
+                
+                ctx.fillStyle = '#4a9eff';
+                ctx.fillText(`边缘: ${this.placed.filter(p => p.edge).length}`, 20, 70);
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillText(`内部: ${this.placed.filter(p => !p.edge).length}`, 20, 90);
+                ctx.fillStyle = '#4ade80';
+                ctx.fillText(`已放置: ${this.placed.length}`, 20, 110);
+                ctx.fillStyle = '#e8eaed';
+                ctx.fillText(`总计: ${this.pieces.length}`, 20, 130);
+                
+                const unplaced = this.pieces.length - this.placed.length;
+                if (unplaced > 0) {
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillText(`未放置: ${unplaced}`, 20, 150);
+                }
+            }
+        };
+        
+        function generate() {
+            const totalStart = performance.now();
+            const cnt = parseInt(document.getElementById('count').value);
+            
+            console.clear();
+            console.log(`%c🎮 开始生成 ${cnt} 片拼图布局`, 'color: #4a9eff; font-weight: bold; font-size: 14px;');
+            
+            mgr.gen(cnt);
+            const stats = mgr.scatter();
+            
+            const drawStart = performance.now();
+            mgr.draw();
+            const drawTime = (performance.now() - drawStart).toFixed(2);
+            
+            const totalTime = (performance.now() - totalStart).toFixed(2);
+            console.log(`🎨 绘制耗时: ${drawTime}ms`);
+            console.log(`⏰ 总耗时: ${totalTime}ms`);
+            
+            document.getElementById('total').textContent = stats.total;
+            document.getElementById('placed').textContent = stats.placed;
+            document.getElementById('g').textContent = stats.G + 'px';
+            document.getElementById('v').textContent = stats.V + 'px';
+            document.getElementById('n').textContent = stats.N === 999 ? '充足' : stats.N;
+            document.getElementById('r').textContent = stats.R === 999 ? '充足' : stats.R;
+        }
+        
+        function set(n) {
+            document.getElementById('count').value = n;
+            document.getElementById('countVal').textContent = n;
+            generate();
+        }
+        
+        document.getElementById('count').addEventListener('input', e => {
+            document.getElementById('countVal').textContent = e.target.value;
+        });
+        
+        document.getElementById('count').addEventListener('change', generate);
+        window.addEventListener('load', generate);
+    </script>
+</body>
+</html>

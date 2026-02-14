@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>完美匹配 - 绝对坐标版</title>
+    <style>
+        body { background: #111; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 20px; font-family: sans-serif; }
+        canvas { border: 1px solid #333; box-shadow: 0 0 30px rgba(0,0,0,0.5); background: #000; }
+        .controls { margin-bottom: 15px; display: flex; gap: 10px; }
+        button { padding: 8px 16px; cursor: pointer; background: #444; color: #fff; border: 1px solid #666; border-radius: 4px; }
+        button:hover { background: #666; }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button onclick="game.init()">重新生成拼图</button>
+        <button onclick="game.shuffle()">打乱顺序</button>
+    </div>
+    <canvas id="puzzleCanvas"></canvas>
+
+<script>
+/**
+ * 形状生成器：负责计算并存储每一条边的物理路径
+ * 确保相邻碎片使用的是完全相同的路径数据
+ */
+const ShapeGenerator = {
+    // 生成一条贝塞尔曲线数据 (标准方向：起点 -> 终点)
+    createEdgeData(length, seed) {
+        // 随机参数
+        const sign = Math.random() > 0.5 ? 1 : -1; // 1=凸向右/下, -1=凹向左/上
+        const curvature = 0.2 + Math.random() * 0.15; // 凹凸程度
+        const skew = (Math.random() - 0.5) * 0.3; // 歪头程度 (不对称性)
+        const neckW = 0.10; // 颈部宽度
+        const headW = 0.25; // 头部宽度
+
+        // 关键点 (基于 0 到 length 的直线)
+        // 这里的逻辑定义了梨形的具体形状
+        const baseH = length * curvature * sign;
+        const midX = length * 0.5 + length * skew; // 歪头偏移
+        
+        // 我们生成 3 段贝塞尔曲线的控制点
+        // 格式: [cp1x, cp1y, cp2x, cp2y, endx, endy]
+        const commands = [];
+
+        // 1. 左侧颈部 (从直线过渡到颈部)
+        commands.push({
+            cp1: { x: length * 0.35, y: 0 },
+            cp2: { x: midX - length * headW * 0.5, y: baseH * 0.6 },
+            end: { x: midX - length * neckW, y: baseH } // 颈部左点
+        });
+
+        // 2. 梨形头部 (圆弧)
+        commands.push({
+            cp1: { x: midX - length * headW, y: baseH * 1.5 }, // 头部左控制点
+            cp2: { x: midX + length * headW, y: baseH * 1.5 }, // 头部右控制点
+            end: { x: midX + length * neckW, y: baseH } // 颈部右点
+        });
+
+        // 3. 右侧颈部 (回归直线)
+        commands.push({
+            cp1: { x: midX + length * headW * 0.5, y: baseH * 0.6 },
+            cp2: { x: length * 0.65, y: 0 },
+            end: { x: length, y: 0 }
+        });
+
+        return commands;
+    },
+
+    // 核心工具：根据起点、终点和预存的命令，绘制路径
+    // reverse = true 时，会倒序绘制，确保完美贴合
+    drawEdge(ctx, p1, p2, commands, reverse) {
+        if (!commands) {
+            ctx.lineTo(p2.x, p2.y);
+            return;
+        }
+
+        // 计算基准坐标系 (从 p1 到 p2 的向量)
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = Math.hypot(dx, dy);
+        const angle = Math.atan2(dy, dx);
+
+        // 坐标变换函数：将相对坐标 (u, v) 转换为绝对坐标 (x, y)
+        // u 是沿线的距离，v 是垂直线的偏移
+        const transform = (u, v) => ({
+            x: p1.x + u * Math.cos(angle) - v * Math.sin(angle),
+            y: p1.y + u * Math.sin(angle) + v * Math.cos(angle)
+        });
+
+        if (!reverse) {
+            // 正向绘制：直接应用命令
+            for (let cmd of commands) {
+                const c1 = transform(cmd.cp1.x, cmd.cp1.y);
+                const c2 = transform(cmd.cp2.x, cmd.cp2.y);
+                const e  = transform(cmd.end.x, cmd.end.y);
+                ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, e.x, e.y);
+            }
+        } else {
+            // 反向绘制：倒序遍历命令，并交换起点终点逻辑
+            // 贝塞尔反向：P_start <-> P_end, CP1 <-> CP2
+            for (let i = commands.length - 1; i >= 0; i--) {
+                const cmd = commands[i];
+                // 当前段的"起点"是上一段的"终点"（正向时）
+                // 在倒序中，当前段的"起点"是 cmd.end
+                // 目标"终点"是 cmd 的前一个节点的 end，或者是 (0,0)
+                
+                const prevEndU = (i === 0) ? 0 : commands[i-1].end.x;
+                const prevEndV = (i === 0) ? 0 : commands[i-1].end.y;
+                
+                const dest = transform(prevEndU, prevEndV);
+                const c1 = transform(cmd.cp2.x, cmd.cp2.y); // 原cp2变成反向的cp1
+                const c2 = transform(cmd.cp1.x, cmd.cp1.y); // 原cp1变成反向的cp2
+                
+                ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, dest.x, dest.y);
+            }
+        }
+    }
+};
+
+class JigsawGame {
+    constructor() {
+        this.canvas = document.getElementById('puzzleCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.img = new Image();
+        this.img.src = 'https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=1200&q=80';
+        this.img.onload = () => this.init();
+        
+        this.pieces = [];
+        this.cols = 4;
+        this.rows = 4;
+        
+        this.attachEvents();
+    }
+
+    init() {
+        // 适配尺寸
+        const maxW = window.innerWidth * 0.9;
+        const maxH = window.innerHeight * 0.8;
+        const scale = Math.min(maxW / this.img.width, maxH / this.img.height);
+        this.canvas.width = this.img.width * scale;
+        this.canvas.height = this.img.height * scale;
+        
+        this.pw = this.canvas.width / this.cols;
+        this.ph = this.canvas.height / this.rows;
+
+        // 1. 生成唯一边缘数据库
+        // hEdges[y][x] 代表第 y 行、第 x 列网格的"下边缘"
+        // vEdges[x][y] 代表第 x 列、第 y 行网格的"右边缘"
+        this.hEdges = [];
+        this.vEdges = [];
+
+        for (let y = 0; y < this.rows; y++) {
+            this.hEdges[y] = []; // 注意：这是第 y 行的下边
+            for (let x = 0; x < this.cols; x++) {
+                this.hEdges[y][x] = ShapeGenerator.createEdgeData(this.pw);
+            }
+        }
+        for (let x = 0; x < this.cols; x++) {
+            this.vEdges[x] = []; // 注意：这是第 x 列的右边
+            for (let y = 0; y < this.rows; y++) {
+                this.vEdges[x][y] = ShapeGenerator.createEdgeData(this.ph);
+            }
+        }
+
+        // 2. 创建碎片对象
+        this.pieces = [];
+        for (let y = 0; y < this.rows; y++) {
+            for (let x = 0; x < this.cols; x++) {
+                this.pieces.push({
+                    gx: x, gy: y,
+                    x: x * this.pw, y: y * this.ph, // 当前位置
+                    cx: x * this.pw, cy: y * this.ph, // 正确位置(Correct X)
+                    locked: false
+                });
+            }
+        }
+        
+        this.draw();
+    }
+
+    drawPiecePath(ctx, p) {
+        const x = 0; // 在局部坐标系绘制，原点为 (0,0)
+        const y = 0;
+        const w = this.pw;
+        const h = this.ph;
+        
+        // 四个角的绝对坐标（相对于碎片当前位置 p.x, p.y）
+        // 但我们这里用 translate 到了 p.x, p.y，所以用相对坐标
+        const TL = { x: 0, y: 0 };
+        const TR = { x: w, y: 0 };
+        const BR = { x: w, y: h };
+        const BL = { x: 0, y: h };
+
+        ctx.beginPath();
+        ctx.moveTo(TL.x, TL.y);
+
+        // --- TOP EDGE ---
+        // 顶边对应的是 "上一行(gy-1) 的 hEdge"
+        // 如果是第一行，画直线；否则读取 hEdges[gy-1][gx]
+        if (p.gy === 0) {
+            ctx.lineTo(TR.x, TR.y);
+        } else {
+            // 顶边也是从左到右 (TL -> TR)
+            // 它是上方碎片的"下边"。上方碎片是从左到右生成的。
+            // 所以我们这里也"正向"读取吗？
+            // 不！上方碎片的下边是 ShapeGenerator 生成的。
+            // 我们的顶边 = 上方碎片的底边。
+            // 共享数据是 hEdges[p.gy - 1][p.gx]。
+            // 该数据定义方向：Left -> Right。
+            // 所以我们也正向绘制。
+            ShapeGenerator.drawEdge(ctx, TL, TR, this.hEdges[p.gy - 1][p.gx], false);
+        }
+
+        // --- RIGHT EDGE ---
+        // 右边对应 vEdges[gx][gy]
+        // 方向：Top -> Bottom (TR -> BR). 正向。
+        if (p.gx === this.cols - 1) {
+            ctx.lineTo(BR.x, BR.y);
+        } else {
+            ShapeGenerator.drawEdge(ctx, TR, BR, this.vEdges[p.gx][p.gy], false);
+        }
+
+        // --- BOTTOM EDGE ---
+        // 底边对应 hEdges[gy][gx]
+        // 方向：Right -> Left (BR -> BL). 
+        // 原始数据是 Left->Right。所以我们需要 REVERSE (true)。
+        if (p.gy === this.rows - 1) {
+            ctx.lineTo(BL.x, BL.y);
+        } else {
+            ShapeGenerator.drawEdge(ctx, BR, BL, this.hEdges[p.gy][p.gx], true);
+        }
+
+        // --- LEFT EDGE ---
+        // 左边对应 "前一列(gx-1) 的 vEdges"
+        // 方向：Bottom -> Top (BL -> TL).
+        // 原始数据(前一列的右边)是 Top->Bottom。所以我们需要 REVERSE (true)。
+        if (p.gx === 0) {
+            ctx.lineTo(TL.x, TL.y);
+        } else {
+            ShapeGenerator.drawEdge(ctx, BL, TL, this.vEdges[p.gx - 1][p.gy], true);
+        }
+
+        ctx.closePath();
+    }
+
+    draw() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 绘制顺序：锁定的到底层，拖拽的到顶层
+        const list = [...this.pieces].sort((a,b) => {
+            if(a === this.selected) return 1;
+            if(b === this.selected) return -1;
+            return (a.locked ? 0 : 1) - (b.locked ? 0 : 1);
+        });
+
+        const imgScale = this.canvas.width / this.img.width;
+
+        list.forEach(p => {
+            this.ctx.save();
+            this.ctx.translate(p.x, p.y);
+
+            // 1. 裁剪并绘制图片
+            this.drawPiecePath(this.ctx, p);
+            this.ctx.clip();
+            
+            // 计算图片在拼图块内的位置
+            const srcX = p.gx * (this.img.width / this.cols);
+            const srcY = p.gy * (this.img.height / this.rows);
+            const srcW = this.img.width / this.cols;
+            const srcH = this.img.height / this.rows;
+            
+            // 增加一点出血位(bleed)以防止接缝黑线
+            const bleed = srcW * 0.2; 
+            
+            this.ctx.drawImage(
+                this.img,
+                srcX - bleed, srcY - bleed, srcW + bleed*2, srcH + bleed*2,
+                -bleed * imgScale, -bleed * imgScale, this.pw + bleed*2*imgScale, this.ph + bleed*2*imgScale
+            );
+            
+            this.ctx.restore();
+
+            // 2. 绘制描边
+            this.ctx.save();
+            this.ctx.translate(p.x, p.y);
+            this.drawPiecePath(this.ctx, p);
+            this.ctx.lineWidth = 1.5;
+            this.ctx.strokeStyle = p.locked ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.6)";
+            this.ctx.stroke();
+            this.ctx.restore();
+        });
+    }
+
+    shuffle() {
+        this.pieces.forEach(p => {
+            if(!p.locked) {
+                p.x = Math.random() * (this.canvas.width - this.pw);
+                p.y = Math.random() * (this.canvas.height - this.ph);
+            }
+        });
+        this.draw();
+    }
+
+    attachEvents() {
+        let isDown = false;
+        let startPos = {x:0, y:0};
+        
+        const getXY = (e) => {
+            const r = this.canvas.getBoundingClientRect();
+            return { x: e.clientX - r.left, y: e.clientY - r.top };
+        };
+
+        this.canvas.onmousedown = (e) => {
+            const m = getXY(e);
+            // 倒序检测，优先点选最上面的
+            for(let i=this.pieces.length-1; i>=0; i--) {
+                const p = this.pieces[i];
+                if(p.locked) continue;
+                if(m.x > p.x && m.x < p.x + this.pw && m.y > p.y && m.y < p.y + this.ph) {
+                    this.selected = p;
+                    startPos = { x: m.x - p.x, y: m.y - p.y };
+                    isDown = true;
+                    this.draw();
+                    break;
+                }
+            }
+        };
+        
+        window.onmousemove = (e) => {
+            if(!isDown || !this.selected) return;
+            const m = getXY(e);
+            this.selected.x = m.x - startPos.x;
+            this.selected.y = m.y - startPos.y;
+            this.draw();
+        };
+
+        window.onmouseup = () => {
+            if(this.selected) {
+                // 吸附判定
+                const dist = Math.hypot(this.selected.x - this.selected.cx, this.selected.y - this.selected.cy);
+                if(dist < 30) {
+                    this.selected.x = this.selected.cx;
+                    this.selected.y = this.selected.cy;
+                    this.selected.locked = true;
+                }
+                this.selected = null;
+                isDown = false;
+                this.draw();
+            }
+        };
+    }
+}
+
+const game = new JigsawGame();
+</script>
+</body>
+</html>
