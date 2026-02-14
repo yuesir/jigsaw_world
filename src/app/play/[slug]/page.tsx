@@ -310,11 +310,13 @@ function PlayPuzzleContent() {
     const centerX = gameAreaRect.width / 2
     const centerY = gameAreaRect.height / 2
 
-    // Calculate board position (centered)
+    // Calculate board position (centered) - this is where the completed puzzle should be
     const boardX = centerX - (pieceWidth * puzzleData.cols) / 2
     const boardY = centerY - (pieceHeight * puzzleData.rows) / 2
 
     // Create pieces with proper tab configurations
+    const allPieces: PuzzlePiece[] = []
+
     for (let row = 0; row < puzzleData.rows; row++) {
       for (let col = 0; col < puzzleData.cols; col++) {
         // Determine tabs for this piece
@@ -350,15 +352,13 @@ function PlayPuzzleContent() {
           tabs
         )
 
-        // Scatter pieces randomly around the game area
-        const margin = tabExtension + 20
-        const scatteredX = margin + Math.random() * (gameAreaRect.width - pieceWidth - tabExtension * 2 - margin * 2)
-        const scatteredY = margin + Math.random() * (gameAreaRect.height - pieceHeight - tabExtension * 2 - margin * 2)
+        // Determine if this is an edge piece
+        const isEdge = row === 0 || row === puzzleData.rows - 1 || col === 0 || col === puzzleData.cols - 1
 
         const piece: PuzzlePiece = {
           id: `${row}-${col}`,
-          x: scatteredX,
-          y: scatteredY,
+          x: 0, // Will be set by spiral layout
+          y: 0, // Will be set by spiral layout
           correctX: boardX + col * pieceWidth,
           correctY: boardY + row * pieceHeight,
           row,
@@ -373,17 +373,206 @@ function PlayPuzzleContent() {
           rotation: 0,
           path: piecePath
         }
-        newPieces.push(piece)
+        allPieces.push(piece)
       }
     }
 
-    // Shuffle pieces more dramatically
-    const shuffledPieces = [...newPieces].sort(() => Math.random() - 0.5)
+    // Apply spiral layout algorithm from layout_v3.html
+    const layoutPieces = applySpiralLayout(allPieces, gameAreaRect, pieceWidth, pieceHeight, tabExtension)
 
-    setPieces(shuffledPieces)
+    setPieces(layoutPieces)
     setGroups([])
     setProgress(0)
     setMoves(0)
+  }
+
+  // Spiral layout algorithm adapted from layout_v3.html
+  const applySpiralLayout = (
+    pieces: PuzzlePiece[],
+    gameAreaRect: DOMRect,
+    pieceWidth: number,
+    pieceHeight: number,
+    tabExtension: number
+  ): PuzzlePiece[] => {
+    const n = { width: gameAreaRect.width, height: gameAreaRect.height }
+    const puzzle_cols = puzzle?.cols || 3
+    const puzzle_rows = puzzle?.rows || 3
+
+    // Total size of completed puzzle (without tabs)
+    const puzzleWidth = pieceWidth * puzzle_cols
+    const puzzleHeight = pieceHeight * puzzle_rows
+
+    // Actual piece dimensions including tabs
+    const actualPieceWidth = pieceWidth + tabExtension * 2
+    const actualPieceHeight = pieceHeight + tabExtension * 2
+
+    // Define the center rectangle that should remain empty (with buffer)
+    const centerX = n.width / 2
+    const centerY = n.height / 2
+
+    // Central avoidance area - puzzle area plus one piece buffer on each side
+    const avoidLeft = centerX - puzzleWidth / 2 - actualPieceWidth
+    const avoidRight = centerX + puzzleWidth / 2 + actualPieceWidth
+    const avoidTop = centerY - puzzleHeight / 2 - actualPieceHeight
+    const avoidBottom = centerY + puzzleHeight / 2 + actualPieceHeight
+
+    console.log('=== Spiral Layout for Puzzle Pieces ===')
+    console.log(`Game area: ${n.width}x${n.height}`)
+    console.log(`Puzzle size: ${puzzleWidth}x${puzzleHeight} (${puzzle_rows}x${puzzle_cols})`)
+    console.log(`Piece size (with tabs): ${actualPieceWidth}x${actualPieceHeight}`)
+    console.log(`Avoidance area: (${avoidLeft.toFixed(0)},${avoidTop.toFixed(0)}) to (${avoidRight.toFixed(0)},${avoidBottom.toFixed(0)})`)
+
+    // Shuffle pieces for random placement order
+    const shuffledPieces = [...pieces].sort(() => Math.random() - 0.5)
+
+    // Define placement positions around the avoidance area
+    const positions: { x: number, y: number }[] = []
+
+    // Calculate spacing between pieces
+    const spacingX = actualPieceWidth * 1.2
+    const spacingY = actualPieceHeight * 1.2
+
+    // Top area - above the avoidance zone
+    if (avoidTop > actualPieceHeight) {
+      const topRowY = Math.max(20, avoidTop / 2 - actualPieceHeight / 2)
+      const numPiecesTop = Math.floor((avoidRight - avoidLeft) / spacingX)
+      const startX = avoidLeft + (avoidRight - avoidLeft - numPiecesTop * spacingX) / 2
+
+      for (let i = 0; i < numPiecesTop && positions.length < pieces.length; i++) {
+        positions.push({
+          x: startX + i * spacingX,
+          y: topRowY
+        })
+      }
+    }
+
+    // Bottom area - below the avoidance zone
+    if (avoidBottom < n.height - actualPieceHeight) {
+      const bottomRowY = Math.min(
+        n.height - actualPieceHeight - 20,
+        avoidBottom + (n.height - avoidBottom) / 2 - actualPieceHeight / 2
+      )
+      const numPiecesBottom = Math.floor((avoidRight - avoidLeft) / spacingX)
+      const startX = avoidLeft + (avoidRight - avoidLeft - numPiecesBottom * spacingX) / 2
+
+      for (let i = 0; i < numPiecesBottom && positions.length < pieces.length; i++) {
+        positions.push({
+          x: startX + i * spacingX,
+          y: bottomRowY
+        })
+      }
+    }
+
+    // Left area - left of the avoidance zone
+    if (avoidLeft > actualPieceWidth) {
+      const leftColX = Math.max(20, avoidLeft / 2 - actualPieceWidth / 2)
+      const numPiecesLeft = Math.floor((avoidBottom - avoidTop) / spacingY)
+      const startY = avoidTop + (avoidBottom - avoidTop - numPiecesLeft * spacingY) / 2
+
+      for (let i = 0; i < numPiecesLeft && positions.length < pieces.length; i++) {
+        positions.push({
+          x: leftColX,
+          y: startY + i * spacingY
+        })
+      }
+    }
+
+    // Right area - right of the avoidance zone
+    if (avoidRight < n.width - actualPieceWidth) {
+      const rightColX = Math.min(
+        n.width - actualPieceWidth - 20,
+        avoidRight + (n.width - avoidRight) / 2 - actualPieceWidth / 2
+      )
+      const numPiecesRight = Math.floor((avoidBottom - avoidTop) / spacingY)
+      const startY = avoidTop + (avoidBottom - avoidTop - numPiecesRight * spacingY) / 2
+
+      for (let i = 0; i < numPiecesRight && positions.length < pieces.length; i++) {
+        positions.push({
+          x: rightColX,
+          y: startY + i * spacingY
+        })
+      }
+    }
+
+    // If still need more positions, add corners
+    if (positions.length < pieces.length) {
+      // Top-left corner
+      if (avoidLeft > actualPieceWidth && avoidTop > actualPieceHeight) {
+        positions.push({
+          x: Math.max(20, avoidLeft / 2 - actualPieceWidth / 2),
+          y: Math.max(20, avoidTop / 2 - actualPieceHeight / 2)
+        })
+      }
+
+      // Top-right corner
+      if (avoidRight < n.width - actualPieceWidth && avoidTop > actualPieceHeight) {
+        positions.push({
+          x: Math.min(n.width - actualPieceWidth - 20, avoidRight + (n.width - avoidRight) / 2),
+          y: Math.max(20, avoidTop / 2 - actualPieceHeight / 2)
+        })
+      }
+
+      // Bottom-left corner
+      if (avoidLeft > actualPieceWidth && avoidBottom < n.height - actualPieceHeight) {
+        positions.push({
+          x: Math.max(20, avoidLeft / 2 - actualPieceWidth / 2),
+          y: Math.min(n.height - actualPieceHeight - 20, avoidBottom + (n.height - avoidBottom) / 2)
+        })
+      }
+
+      // Bottom-right corner
+      if (avoidRight < n.width - actualPieceWidth && avoidBottom < n.height - actualPieceHeight) {
+        positions.push({
+          x: Math.min(n.width - actualPieceWidth - 20, avoidRight + (n.width - avoidRight) / 2),
+          y: Math.min(n.height - actualPieceHeight - 20, avoidBottom + (n.height - avoidBottom) / 2)
+        })
+      }
+    }
+
+    console.log(`Generated ${positions.length} positions for ${pieces.length} pieces`)
+
+    // Place pieces at the calculated positions
+    shuffledPieces.forEach((piece, index) => {
+      if (index < positions.length) {
+        const pos = positions[index]
+        // Add small random offset for natural look
+        const randomOffsetX = (Math.random() - 0.5) * 10
+        const randomOffsetY = (Math.random() - 0.5) * 10
+
+        piece.x = Math.max(0, Math.min(pos.x + randomOffsetX, n.width - actualPieceWidth))
+        piece.y = Math.max(0, Math.min(pos.y + randomOffsetY, n.height - actualPieceHeight))
+
+        console.log(`Placed piece ${piece.id} at (${piece.x.toFixed(0)}, ${piece.y.toFixed(0)})`)
+      } else {
+        // Fallback: place remaining pieces randomly outside the avoidance area
+        console.warn(`No position for piece ${piece.id}, placing randomly`)
+        let placed = false
+        let attempts = 0
+
+        while (!placed && attempts < 50) {
+          const x = Math.random() * (n.width - actualPieceWidth)
+          const y = Math.random() * (n.height - actualPieceHeight)
+
+          // Check if position is outside the avoidance area
+          if (x + actualPieceWidth < avoidLeft || x > avoidRight ||
+              y + actualPieceHeight < avoidTop || y > avoidBottom) {
+            piece.x = x
+            piece.y = y
+            placed = true
+          }
+          attempts++
+        }
+
+        if (!placed) {
+          // Last resort: place anywhere
+          piece.x = Math.random() * (n.width - actualPieceWidth)
+          piece.y = Math.random() * (n.height - actualPieceHeight)
+        }
+      }
+    })
+
+    console.log('=====================================')
+    return pieces
   }
 
   const startGame = () => {
@@ -408,7 +597,7 @@ function PlayPuzzleContent() {
     setDraggedGroup(null)
     setShowGhostImage(false)
     setShowEdgeOnly(false)
-    if (puzzle && boardRef.current) {
+    if (puzzle && boardRef.current && gameAreaRef.current) {
       const boardRect = boardRef.current.getBoundingClientRect()
       const availableWidth = boardRect.width - BOARD_PADDING * 2
       const availableHeight = boardRect.height - BOARD_PADDING * 2
@@ -729,9 +918,16 @@ function PlayPuzzleContent() {
       setGroups(newGroups)
       setMoves(prev => prev + 1)
 
-      // Calculate progress
-      const placedCount = newPieces.filter(p => p.isPlaced).length
-      const newProgress = Math.round((placedCount / newPieces.length) * 100)
+      // Calculate progress based on connected pieces
+      // Find the largest group (represents the most connected pieces)
+      const largestGroup = newGroups.reduce((max, group) =>
+        group.pieces.length > (max?.pieces.length || 0) ? group : max
+      , newGroups[0])
+
+      // Progress is based on the size of the largest connected group
+      const connectedPieces = largestGroup ? largestGroup.pieces.length : 1
+      const totalPieces = newPieces.length || 1
+      const newProgress = Math.round((connectedPieces / totalPieces) * 100)
       setProgress(newProgress)
 
       // Additional check: if all pieces are in one group, verify if puzzle is complete
@@ -819,8 +1015,9 @@ function PlayPuzzleContent() {
       }
 
       // Check for completion
-      console.log('Checking completion:', placedCount, 'of', newPieces.length, 'pieces placed')
-      if (placedCount === newPieces.length && newPieces.length > 0) {
+      const finalPlacedCount = newPieces.filter(p => p.isPlaced).length
+      console.log('Checking completion:', finalPlacedCount, 'of', newPieces.length, 'pieces placed')
+      if (finalPlacedCount === newPieces.length && newPieces.length > 0) {
         console.log('Puzzle completed!')
         setIsCompleted(true)
         setIsPlaying(false)
@@ -1089,7 +1286,7 @@ function PlayPuzzleContent() {
     <div className="min-h-screen bg-muted dark:bg-background flex flex-col">
       {/* Game Header */}
       <header className="bg-card dark:bg-card/80 border-b border-border dark:border-white/10 px-4 sm:px-6 py-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link href="/">
               <Button variant="ghost" size="icon" className="hidden sm:flex dark:hover:bg-white/10">
@@ -1259,8 +1456,8 @@ function PlayPuzzleContent() {
 
       {/* Game Area */}
       <div className="flex-1 p-4 sm:p-6 overflow-hidden">
-        <div className="max-w-7xl mx-auto h-full">
-          <div className="flex gap-6">
+        <div className="w-full h-full">
+          <div className="flex gap-6 h-full">
             {/* Main Game Board */}
             <div
               ref={gameAreaRef}
@@ -1418,27 +1615,6 @@ function PlayPuzzleContent() {
                   </Card>
                 </div>
               )}
-            </div>
-
-            {/* Sidebar */}
-            <div className="hidden xl:block w-64 space-y-4 self-start">
-              {/* Preview thumbnail */}
-              <Card className="border-0 shadow-lg overflow-hidden dark:bg-card dark:border dark:border-white/10">
-                <div className="relative aspect-[4/3]">
-                  <Image
-                    src={puzzle.image_url}
-                    alt="Preview"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                    <Button size="sm" variant="secondary" onClick={() => setShowPreview(true)}>
-                      <Maximize2 className="w-4 h-4 mr-1" />
-                      View Full
-                    </Button>
-                  </div>
-                </div>
-              </Card>
             </div>
           </div>
         </div>
