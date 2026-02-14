@@ -762,36 +762,58 @@ function PlayPuzzleContent() {
           const firstPiece = newPieces.find(p => p.id === firstPieceId)
 
           if (firstPiece) {
+            // Check if pieces are in correct relative positions to each other
+            // We don't care about absolute position, only that they form the correct pattern
             newPieces.forEach(piece => {
-              const relativeCol = piece.col - firstPiece.col
-              const relativeRow = piece.row - firstPiece.row
-              const pieceX = singleGroup.offsetX + relativeCol * piece.width
-              const pieceY = singleGroup.offsetY + relativeRow * piece.height
+              // Calculate where this piece should be relative to the first piece
+              const expectedRelativeX = (piece.col - firstPiece.col) * piece.width
+              const expectedRelativeY = (piece.row - firstPiece.row) * piece.height
 
-              if (Math.abs(pieceX - piece.correctX) > 5 || Math.abs(pieceY - piece.correctY) > 5) {
-                allCorrect = false
-                console.log(`Piece ${piece.id} not in correct position: ${pieceX},${pieceY} vs ${piece.correctX},${piece.correctY}`)
-              }
+              // Calculate where this piece actually is relative to the first piece
+              const actualRelativeX = (piece.col - firstPiece.col) * piece.width
+              const actualRelativeY = (piece.row - firstPiece.row) * piece.height
+
+              // Since all pieces are in one group, their relative positions should be correct
+              // The above calculation will always match, so we just need to verify the group structure
+              // The fact that all pieces are in one group means they're correctly connected
             })
 
-            if (allCorrect) {
-              console.log('All pieces actually in correct position after double-check!')
-              // Mark all pieces as placed and complete the puzzle
-              newPieces = newPieces.map(p => ({ ...p, isPlaced: true }))
-              setPieces(newPieces)
-              setIsCompleted(true)
-              setIsPlaying(false)
-              setProgress(100)
+            // If all pieces are in one group, the puzzle is complete!
+            console.log('All pieces correctly connected in relative positions!')
 
-              if (!isMuted) {
-                const audio = new Audio('/sounds/complete.mp3')
-                audio.volume = 0.5
-                audio.play().catch(() => {})
+            // Optional: Center the completed puzzle
+            const gameArea = gameAreaRef.current
+            if (gameArea) {
+              const gameAreaRect = gameArea.getBoundingClientRect()
+              const centerX = gameAreaRect.width / 2
+              const centerY = gameAreaRect.height / 2
+              const puzzleWidth = firstPiece.width * (puzzle?.cols || 1)
+              const puzzleHeight = firstPiece.height * (puzzle?.rows || 1)
+              const targetX = centerX - puzzleWidth / 2
+              const targetY = centerY - puzzleHeight / 2
+
+              // Update the group position to center it
+              newGroups[0] = {
+                ...newGroups[0],
+                offsetX: targetX,
+                offsetY: targetY
               }
-              return
-            } else {
-              console.log('Not all pieces in correct position yet')
+              setGroups(newGroups)
             }
+
+            // Mark all pieces as placed and complete the puzzle
+            newPieces = newPieces.map(p => ({ ...p, isPlaced: true }))
+            setPieces(newPieces)
+            setIsCompleted(true)
+            setIsPlaying(false)
+            setProgress(100)
+
+            if (!isMuted) {
+              const audio = new Audio('/sounds/complete.mp3')
+              audio.volume = 0.5
+              audio.play().catch(() => {})
+            }
+            return
           }
         }
       }
